@@ -1,0 +1,23 @@
+---
+name: Containers
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build-fedora-image:
+    name: "Build container image (Fedora)"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+      - name: Build container image
+        uses: docker/build-push-action@v2
+        with:
+          file: ./Dockerfile
