@@ -4,15 +4,15 @@ parent: Command line reference
 nav_order: 1
 ---
 
-# coreos-installer install
+# nestos-installer install
 
 ## Description
 
-Install Fedora CoreOS or RHEL CoreOS
+Install NestOS
 
 ## Usage
 
-**coreos-installer install** [*options*] *device*
+**nestos-installer install** [*options*] *device*
 
 ## Arguments
 
@@ -20,7 +20,7 @@ Install Fedora CoreOS or RHEL CoreOS
 
 ## Options
 
-| **--stream**, **-s** *name* | Fedora CoreOS stream |
+| **--stream**, **-s** *name* | NestOS stream |
 | **--image-url**, **-u** *URL* | Manually specify the image URL |
 | **--image-file**, **-f** *path* | Manually specify a local image file |
 | **--ignition-file**, **-i** *path* | Embed an Ignition config from a file |
@@ -36,7 +36,7 @@ Install Fedora CoreOS or RHEL CoreOS
 | **--offline** | Force offline installation |
 | **--insecure** | Skip signature verification |
 | **--insecure-ignition** | Allow Ignition URL without HTTPS or hash |
-| **--stream-base-url** *URL* | Base URL for Fedora CoreOS stream metadata |
+| **--stream-base-url** *URL* | Base URL for NestOS stream metadata |
 | **--architecture** *name* | Target CPU architecture [default: x86_64] |
 | **--preserve-on-error** | Don't clear partition table on error |
 | **--fetch-retries** *N* | Fetch retries, or string "infinite" |

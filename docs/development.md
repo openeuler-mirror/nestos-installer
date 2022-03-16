@@ -17,14 +17,14 @@ consumes the entire device. The device specified to the installer needs to be
 available and not currently in use. You cannot target a disk that is currently
 mounted.
 
-Build coreos-installer and use it to install a Fedora CoreOS `testing` image to
+Build nestos-installer and use it to install a NestOS `testing` image to
 a partitionable loop device:
 
 ```sh
 cargo build
 truncate -s 8G image-file
 sudo losetup -P /dev/loop0 image-file
-sudo target/debug/coreos-installer install /dev/loop0 -s testing
+sudo target/debug/nestos-installer install /dev/loop0 -s testing
 ```
 
 ## Release process

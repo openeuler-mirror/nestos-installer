@@ -1,9 +1,0 @@
-[Unit]
-Description=CoreOS Installer Target
-
-Requires=coreos-installer-pre.target
-Requires=coreos-installer.service
-
-# Run after most things are up
-Requires=basic.target
-After=basic.target

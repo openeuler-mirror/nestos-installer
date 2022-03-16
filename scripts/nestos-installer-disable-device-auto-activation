@@ -6,19 +6,19 @@
 set -euo pipefail
 
 # Configure mdadm
-if [ ! -e /etc/mdadm.conf.d/coreos-installer.conf ]; then
+if [ ! -e /etc/mdadm.conf.d/nestos-installer.conf ]; then
     mkdir -p /etc/mdadm.conf.d
-    cat > /etc/mdadm.conf.d/coreos-installer.conf <<EOF
-# Disable MD auto-assembly for coreos-installer
+    cat > /etc/mdadm.conf.d/nestos-installer.conf <<EOF
+# Disable MD auto-assembly for nestos-installer
 AUTO -all
 EOF
 fi
 
 # Configure LVM
-if ! grep -q coreos-installer /etc/lvm/lvm.conf; then
+if ! grep -q nestos-installer /etc/lvm/lvm.conf; then
     cat >> /etc/lvm/lvm.conf <<EOF
 
-# Disable LVM auto-activation for coreos-installer
+# Disable LVM auto-activation for nestos-installer
 devices {
         filter = [ "r|.*|" ]
 }

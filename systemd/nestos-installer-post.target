@@ -1,0 +1,7 @@
+[Unit]
+Description=Finalize NestOS Installer Target
+AllowIsolate=yes
+
+Requires=nestos-installer.target
+Requires=nestos-installer-reboot.service
+Requires=nestos-installer-noreboot.service

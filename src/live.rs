@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// change coreos to nestos
+
 use anyhow::{bail, Context, Result};
 use cpio::{write_cpio, NewcBuilder, NewcReader};
 use nix::unistd::isatty;
@@ -29,12 +31,12 @@ use crate::install::*;
 use crate::io::*;
 
 const FILENAME: &str = "config.ign";
-const COREOS_IGNITION_HEADER_MAGIC: &[u8] = b"coreiso+";
-const COREOS_IGNITION_HEADER_SIZE: u64 = 24;
-const COREOS_KARG_EMBED_AREA_HEADER_MAGIC: &[u8] = b"coreKarg";
-const COREOS_KARG_EMBED_AREA_HEADER_SIZE: u64 = 72;
-const COREOS_KARG_EMBED_AREA_HEADER_MAX_OFFSETS: usize = 6;
-const COREOS_KARG_EMBED_AREA_MAX_SIZE: usize = 2048;
+const NESTOS_IGNITION_HEADER_MAGIC: &[u8] = b"coreiso+";
+const NESTOS_IGNITION_HEADER_SIZE: u64 = 24;
+const NESTOS_KARG_EMBED_AREA_HEADER_MAGIC: &[u8] = b"coreKarg";
+const NESTOS_KARG_EMBED_AREA_HEADER_SIZE: u64 = 72;
+const NESTOS_KARG_EMBED_AREA_HEADER_MAX_OFFSETS: usize = 6;
+const NESTOS_KARG_EMBED_AREA_MAX_SIZE: usize = 2048;
 
 pub fn iso_embed(config: &IsoIgnitionEmbedConfig) -> Result<()> {
     eprintln!("`iso embed` is deprecated; use `iso ignition embed`.  Continuing.");
@@ -252,14 +254,14 @@ impl<'a> KargEmbedAreas<'a> {
         // 8 bytes little-endian: offset to default kargs
         // 8 bytes little-endian x 6: offsets to karg embed areas
         file.seek(SeekFrom::Start(
-            32768 - COREOS_IGNITION_HEADER_SIZE - COREOS_KARG_EMBED_AREA_HEADER_SIZE,
+            32768 - NESTOS_IGNITION_HEADER_SIZE - NESTOS_KARG_EMBED_AREA_HEADER_SIZE,
         ))
         .context("seeking to karg embed header")?;
         // magic number
         file.read_exact(&mut buf)
             .context("reading karg embed header")?;
-        if buf != COREOS_KARG_EMBED_AREA_HEADER_MAGIC {
-            bail!("No karg embed areas found; old or corrupted CoreOS ISO image.");
+        if buf != NESTOS_KARG_EMBED_AREA_HEADER_MAGIC {
+            bail!("No karg embed areas found; old or corrupted NestOS ISO image.");
         }
         // length
         file.read_exact(&mut buf)
@@ -268,10 +270,10 @@ impl<'a> KargEmbedAreas<'a> {
             .try_into()
             .context("karg embed area length too large to allocate")?;
         // sanity-check against a reasonable limit
-        if length > COREOS_KARG_EMBED_AREA_MAX_SIZE {
+        if length > NESTOS_KARG_EMBED_AREA_MAX_SIZE {
             bail!(
                 "karg embed area length larger than {} (found {})",
-                COREOS_KARG_EMBED_AREA_MAX_SIZE,
+                NESTOS_KARG_EMBED_AREA_MAX_SIZE,
                 length
             );
         }
@@ -294,7 +296,7 @@ impl<'a> KargEmbedAreas<'a> {
 
         // offsets
         let mut kargs_offsets: Vec<u64> = Vec::new();
-        while kargs_offsets.len() < COREOS_KARG_EMBED_AREA_HEADER_MAX_OFFSETS {
+        while kargs_offsets.len() < NESTOS_KARG_EMBED_AREA_HEADER_MAX_OFFSETS {
             file.read_exact(&mut buf)
                 .context("reading karg embed header")?;
             let offset: u64 = u64::from_le_bytes(buf);
@@ -316,7 +318,7 @@ impl<'a> KargEmbedAreas<'a> {
 
         // we expect at least one
         if kargs_offsets.is_empty() {
-            bail!("No karg embed areas found; corrupted CoreOS ISO image.");
+            bail!("No karg embed areas found; corrupted NestOS ISO image.");
         }
 
         Ok(KargEmbedAreas {
@@ -472,7 +474,7 @@ impl ContentFile {
                     .open(&input_path)
                     .with_context(|| format!("opening {}", &input_path))?;
                 let mut output = tempfile::Builder::new()
-                    .prefix(".coreos-installer-temp-")
+                    .prefix(".nestos-installer-temp-")
                     .tempfile_in(output_dir)
                     .context("creating temporary file")?;
                 input
@@ -527,12 +529,12 @@ impl<'a> EmbedArea<'a> {
         // 8 bytes: magic string "coreiso+"
         // 8 bytes little-endian: offset of embed area from start of file
         // 8 bytes little-endian: length of embed area
-        file.seek(SeekFrom::Start(32768 - COREOS_IGNITION_HEADER_SIZE))
+        file.seek(SeekFrom::Start(32768 - NESTOS_IGNITION_HEADER_SIZE))
             .context("seeking to embed header")?;
         // magic number
         file.read_exact(&mut buf).context("reading embed header")?;
-        if buf != COREOS_IGNITION_HEADER_MAGIC {
-            bail!("Unrecognized CoreOS ISO image.");
+        if buf != NESTOS_IGNITION_HEADER_MAGIC {
+            bail!("Unrecognized NestOS ISO image.");
         }
         // offset
         file.read_exact(&mut buf).context("reading embed header")?;
@@ -548,7 +550,7 @@ impl<'a> EmbedArea<'a> {
             .context("seeking to end of image file")?
             < offset + length as u64
         {
-            bail!("Invalid CoreOS ISO image.");
+            bail!("Invalid NestOS ISO image.");
         }
         Ok(Self {
             file,

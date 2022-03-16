@@ -9,15 +9,15 @@ nav_order: 5
 1. TOC
 {:toc}
 
-## Hooking coreos-installer at boot time
+## Hooking nestos-installer at boot time
 
-When coreos-installer is run from a CoreOS live image (ISO or PXE) using
+When nestos-installer is run from a NestOS live image (ISO or PXE) using
 kernel command-line arguments, additional custom code can be run before or
 after the installer.  To do this, specify an Ignition config to the live
 boot that runs the installer.  This config is separate and distinct from the
 Ignition config that governs the installed system.
 
-This is a sample Fedora CoreOS Config with hooks that run both before and
+This is a sample NestOS Config with hooks that run both before and
 after the installer:
 
 ```
@@ -52,41 +52,42 @@ systemd:
       contents: |
         [Unit]
         Description=Run before install
-        After=coreos-installer-pre.target
-        Before=coreos-installer.service
+        After=nestos-installer-pre.target
+        Before=nestos-installer.service
 
         [Service]
         Type=oneshot
         ExecStart=/usr/local/bin/pre-install-hook
 
         [Install]
-        RequiredBy=coreos-installer.service
+        RequiredBy=nestos-installer.service
     - name: post-install-hook.service
       enabled: true
       contents: |
         [Unit]
         Description=Run after install
-        After=coreos-installer.service
-        Before=coreos-installer.target
+        After=nestos-installer.service
+        Before=nestos-installer.target
 
         [Service]
         Type=oneshot
         ExecStart=/usr/local/bin/post-install-hook
 
         [Install]
-        RequiredBy=coreos-installer.target
+        RequiredBy=nestos-installer.target
 ```
 
 Convert this FCC to an Ignition config with:
 
 ```
 fcct < hooks.fcc > hooks.ign
+#now is butane
 ```
 
 For live ISO booting, embed the resulting config in the live ISO:
 
 ```
-coreos-installer iso ignition embed -i hooks.ign fedora-coreos-32.20200715.3.0-live.x86_64.iso
+nestos-installer iso ignition embed -i hooks.ign Nest.xxx.iso
 ```
 
 For live PXE booting, add Ignition first-boot arguments to the kernel argument
@@ -96,15 +97,15 @@ list:
 coreos.inst.install_dev=/dev/sda coreos.inst.ignition_url=https://example.com/install-config.ign ignition.config.url=https://example.com/hooks.ign ignition.firstboot ignition.platform.id=metal
 ```
 
-## Custom coreos-installer invocation
+## Custom nestos-installer invocation
 
-It is also possible to invoke coreos-installer from a custom systemd unit,
+It is also possible to invoke nestos-installer from a custom systemd unit,
 instead of the default invocation that runs with the
 `coreos.inst.install_dev` kernel argument.  This can be useful for
-customizing the coreos-installer command-line arguments, e.g. to
+customizing the nestos-installer command-line arguments, e.g. to
 automatically select the target install disk.
 
-This is a sample Fedora CoreOS config to run coreos-installer:
+This is a sample NestOS config to run nestos-installer:
 
 ```
 variant: fcos
@@ -116,9 +117,9 @@ systemd:
       enabled: true
       contents: |
         [Unit]
-        Description=Run CoreOS Installer
-        Requires=coreos-installer-pre.target
-        After=coreos-installer-pre.target
+        Description=Run NestOS Installer
+        Requires=nestos-installer-pre.target
+        After=nestos-installer-pre.target
         OnFailure=emergency.target
         OnFailureJobMode=replace-irreversibly
 
@@ -129,7 +130,7 @@ systemd:
 
         [Service]
         Type=oneshot
-        ExecStart=/usr/bin/coreos-installer install /dev/sda
+        ExecStart=/usr/bin/nestos-installer install /dev/sda
         ExecStart=/usr/bin/systemctl --no-block reboot
         StandardOutput=kmsg+console
         StandardError=kmsg+console
@@ -142,12 +143,13 @@ Convert this FCC to an Ignition config with:
 
 ```
 fcct < install.fcc > install.ign
+#now is butane
 ```
 
 For live ISO booting, embed the resulting config in the live ISO:
 
 ```
-coreos-installer iso ignition embed -i install.ign fedora-coreos-32.20200715.3.0-live.x86_64.iso
+nestos-installer iso ignition embed -i install.ign NestOS-xxx.iso
 ```
 
 For live PXE booting, use only the Ignition first-boot arguments in the kernel

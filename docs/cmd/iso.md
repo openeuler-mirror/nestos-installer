@@ -4,13 +4,13 @@ parent: Command line reference
 nav_order: 4
 ---
 
-# coreos-installer iso
+# nestos-installer iso
 {: .no_toc }
 
 1. TOC
 {:toc}
 
-# coreos-installer iso ignition embed
+# nestos-installer iso ignition embed
 
 ## Description
 
@@ -18,7 +18,7 @@ Embed an Ignition config in an ISO image
 
 ## Usage
 
-**coreos-installer iso ignition embed** [*options*] *ISO*
+**nestos-installer iso ignition embed** [*options*] *ISO*
 
 ## Arguments
 
@@ -30,7 +30,7 @@ Embed an Ignition config in an ISO image
 | **--ignition-file**, **-i** *path* | Ignition config to embed [default: stdin] |
 | **--output**, **-o** *path* | Write ISO to a new output file |
 
-# coreos-installer iso ignition show
+# nestos-installer iso ignition show
 
 ## Description
 
@@ -38,13 +38,13 @@ Show the embedded Ignition config from an ISO image
 
 ## Usage
 
-**coreos-installer iso ignition show** *ISO*
+**nestos-installer iso ignition show** *ISO*
 
 ## Arguments
 
 | **ISO** | ISO image |
 
-# coreos-installer iso ignition remove
+# nestos-installer iso ignition remove
 
 ## Description
 
@@ -52,7 +52,7 @@ Remove an existing embedded Ignition config from an ISO image
 
 ## Usage
 
-**coreos-installer iso ignition remove** *ISO*
+**nestos-installer iso ignition remove** *ISO*
 
 ## Arguments
 
@@ -62,7 +62,7 @@ Remove an existing embedded Ignition config from an ISO image
 
 | **--output**, **-o** *path* | Copy to a new file, instead of modifying in place |
 
-# coreos-installer iso kargs modify
+# nestos-installer iso kargs modify
 
 ## Description
 
@@ -70,7 +70,7 @@ Modify kernel args in an ISO image
 
 ## Usage
 
-**coreos-installer iso kargs modify** *ISO*
+**nestos-installer iso kargs modify** *ISO*
 
 ## Arguments
 
@@ -83,7 +83,7 @@ Modify kernel args in an ISO image
 | **--replace**, **-r** *KARG=OLDVAL=NEWVAL...* | Kernel argument to replace |
 | **--output**, **-o** *path* | Write ISO to a new output file |
 
-# coreos-installer iso kargs reset
+# nestos-installer iso kargs reset
 
 ## Description
 
@@ -91,7 +91,7 @@ Reset kernel args in an ISO image to defaults
 
 ## Usage
 
-**coreos-installer iso kargs reset** *ISO*
+**nestos-installer iso kargs reset** *ISO*
 
 ## Arguments
 
@@ -101,7 +101,7 @@ Reset kernel args in an ISO image to defaults
 
 | **--output**, **-o** *path* | Write ISO to a new output file |
 
-# coreos-installer iso kargs show
+# nestos-installer iso kargs show
 
 ## Description
 
@@ -109,7 +109,7 @@ Show kernel args from an ISO image
 
 ## Usage
 
-**coreos-installer iso kargs show** *ISO*
+**nestos-installer iso kargs show** *ISO*
 
 ## Arguments
 

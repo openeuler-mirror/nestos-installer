@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// change coreos to nestos
+
 use anyhow::{anyhow, bail, Context, Result};
 use gptman::{GPTPartitionEntry, GPT};
 use nix::sys::stat::{major, minor};
@@ -435,7 +437,7 @@ pub struct Mount {
 impl Mount {
     pub fn try_mount(device: &str, fstype: &str, flags: mount::MsFlags) -> Result<Mount> {
         let tempdir = tempfile::Builder::new()
-            .prefix("coreos-installer-")
+            .prefix("nestos-installer-")
             .tempdir()
             .context("creating temporary directory")?;
         // avoid auto-cleanup of tempdir, which could recursively remove
@@ -448,7 +450,7 @@ impl Mount {
         // COREOS_INSTALLER_NO_MOUNT_NAMESPACE environment variable is set,
         // in case there are use cases where the unshare call fails.
         // https://github.com/coreos/coreos-installer/issues/557
-        match env::var("COREOS_INSTALLER_NO_MOUNT_NAMESPACE")
+        match env::var("NESTOS_INSTALLER_NO_MOUNT_NAMESPACE")
             .as_ref()
             .map(|v| v as &str)
         {
@@ -459,7 +461,7 @@ impl Mount {
             _ => {
                 static WARNED: Once = Once::new();
                 WARNED.call_once(|| {
-                    eprintln!("\nMounting filesystems in parent namespace because\nCOREOS_INSTALLER_NO_MOUNT_NAMESPACE is set.  If you need this, file a bug at\nhttps://github.com/coreos/coreos-installer/issues/new/choose.\n");
+                    eprintln!("\nMounting filesystems in parent namespace because\nNESTOS_INSTALLER_NO_MOUNT_NAMESPACE is set.  If you need this, file a bug at\nhttps://github.com/coreos/coreos-installer/issues/new/choose.\n");
                 });
             }
         }

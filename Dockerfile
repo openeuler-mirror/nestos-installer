@@ -1,3 +1,4 @@
+#update for nestos later
 FROM registry.fedoraproject.org/fedora:33 AS builder
 RUN dnf install -y cargo openssl-devel
 WORKDIR /build

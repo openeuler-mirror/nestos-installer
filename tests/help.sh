@@ -6,7 +6,7 @@ set -euo pipefail
 fail=0
 checklen() {
     local length
-    length=$(target/debug/coreos-installer $* --help | wc -L)
+    length=$(target/debug/nestos-installer $* --help | wc -L)
     if [ "${length}" -gt 80 ] ; then
         echo "$* --help line length ${length} > 80"
         fail=1

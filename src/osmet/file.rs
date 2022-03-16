@@ -60,7 +60,7 @@ impl OsmetFileHeader {
             // architecture on which we're running. This holds, because packing is done by cosa,
             // which today doesn't support cross-building. But the osmet format and algorithm
             // itself actually doesn't care about the target architecture. In the future, a more
-            // correct approach is to read this directly from the e.g. coreos-assembler.basearch
+            // correct approach is to read this directly from the e.g. nestos-assembler.basearch
             // in the commit metadata on the source disk.
             os_architecture: nix::sys::utsname::uname().machine().into(),
         }
@@ -80,7 +80,7 @@ pub(super) fn osmet_file_write(
     let mut f = BufWriter::with_capacity(
         BUFFER_SIZE,
         tempfile::Builder::new()
-            .prefix("coreos-installer-osmet")
+            .prefix("nestos-installer-osmet")
             .suffix(".partial")
             .tempfile_in(path.parent().unwrap())?,
     );

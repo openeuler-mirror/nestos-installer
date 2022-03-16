@@ -1,23 +1,22 @@
 [package]
-name = "coreos-installer"
-repository = "https://github.com/coreos/coreos-installer"
-license = "Apache-2.0"
-edition = "2018"
+name = "nestos-installer"
+repository = "https://gitee.com/openeuler/nestos-installer"
+license = "Apache-2.0 "
+edition = "2022"
 exclude = ["/.cci.jenkinsfile", "/.github", "/.gitignore", "/Dockerfile"]
-authors = [ "Benjamin Gilbert <bgilbert@redhat.com>" ]
-description = "Installer for Fedora CoreOS and RHEL CoreOS"
+description = "Installer for NestOS"
 version = "0.10.0"
 
 [package.metadata.release]
 sign-commit = true
 disable-push = true
 disable-publish = true
-pre-release-commit-message = "cargo: coreos-installer release {{version}}"
+pre-release-commit-message = "cargo: nestos-installer release {{version}}"
 post-release-commit-message = "cargo: development version bump"
-tag-message = "coreos-installer v{{version}}"
+tag-message = "nestos-installer v{{version}}"
 
 [features]
-# rdcore is only useful inside the initrd of a CoreOS system
+# rdcore is only useful inside the initrd of a NestOS system
 rdcore = []
 
 [lib]
@@ -25,7 +24,7 @@ name = "libcoreinst"
 path = "src/lib.rs"
 
 [[bin]]
-name = "coreos-installer"
+name = "nestos-installer"
 path = "src/main.rs"
 
 [[bin]]

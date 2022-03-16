@@ -1,5 +1,5 @@
 [Unit]
-Description=Disable Device Auto-Activation for CoreOS Installer
+Description=Disable Device Auto-Activation for NestOS Installer
 DefaultDependencies=no
 Before=systemd-udevd.service
 Before=dm-event.service
@@ -8,4 +8,4 @@ RequiresMountsFor=/tmp
 
 [Service]
 Type=oneshot
-ExecStart=/usr/libexec/coreos-installer-disable-device-auto-activation
+ExecStart=/usr/libexec/nestos-installer-disable-device-auto-activation

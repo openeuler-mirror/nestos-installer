@@ -4,17 +4,17 @@ parent: Command line reference
 nav_order: 3
 ---
 
-# coreos-installer list-stream
+# nestos-installer list-stream
 
 ## Description
 
-List available images in a Fedora CoreOS stream
+List available images in a NestOS stream
 
 ## Usage
 
-**coreos-installer list-stream**
+**nestos-installer list-stream**
 
 ## Options
 
-| **--stream**, **-s** *name* | Fedora CoreOS stream [default: stable] |
-| **--stream-base-url** *URL* | Base URL for Fedora CoreOS stream metadata |
+| **--stream**, **-s** *name* | NestOS stream [default: stable] |
+| **--stream-base-url** *URL* | Base URL for NestOS stream metadata |

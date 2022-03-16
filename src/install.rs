@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// change coreos to nestos
+
 use anyhow::{bail, Context, Result};
 use lazy_static::lazy_static;
 use nix::mount;
@@ -518,7 +520,7 @@ fn copy_network_config(mountpoint: &Path, net_config_src: &str) -> Result<()> {
     eprintln!("Copying networking configuration from {}", net_config_src);
 
     // get the path to the destination directory
-    let net_config_dest = mountpoint.join("coreos-firstboot-network");
+    let net_config_dest = mountpoint.join("nestos-firstboot-network");
 
     // make the directory if it doesn't exist
     create_dir_all(&net_config_dest).with_context(|| {
@@ -581,7 +583,7 @@ fn reset_partition_table(
 // the path.
 fn stash_saved_partitions(disk: &mut File, saved: &SavedPartitions) -> Result<()> {
     let mut stash = tempfile::Builder::new()
-        .prefix("coreos-installer-partitions.")
+        .prefix("nestos-installer-partitions.")
         .tempfile()
         .context("creating partition stash file")?;
     let path = stash.path().to_owned();

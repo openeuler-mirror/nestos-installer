@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// change coreos to nestos
+
 use anyhow::{anyhow, bail, Context, Result};
 use reqwest::{blocking, StatusCode, Url};
 use serde::Deserialize;
@@ -33,7 +35,7 @@ const HTTP_COMPLETION_TIMEOUT: Duration = Duration::from_secs(4 * 60 * 60);
 const DEFAULT_STREAM_BASE_URL: &str = "https://builds.coreos.fedoraproject.org/streams/";
 
 /// Directory in which we look for osmet files.
-const OSMET_FILES_DIR: &str = "/run/coreos-installer/osmet";
+const OSMET_FILES_DIR: &str = "/run/nestos-installer/osmet";
 
 pub trait ImageLocation: Display {
     // Obtain image lengths and signatures and start fetching the images
