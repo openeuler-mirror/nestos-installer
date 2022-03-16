@@ -1,6 +1,6 @@
 [Unit]
-Description=CoreOS Installer
-Before=coreos-installer.target
+Description=NestOS Installer
+Before=nestos-installer.target
 After=network-online.target
 Wants=network-online.target
 # Until we retry HTTP requests let's wait here until
@@ -13,6 +13,6 @@ OnFailureJobMode=replace-irreversibly
 
 [Service]
 Type=oneshot
-ExecStart=/usr/libexec/coreos-installer-service
+ExecStart=/usr/libexec/nestos-installer-service
 StandardOutput=kmsg+console
 StandardError=kmsg+console

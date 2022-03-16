@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// change coreos to nestos
+
 use anyhow::{anyhow, bail, Context, Result};
 use byte_unit::Byte;
 use nix::unistd::isatty;
@@ -454,7 +456,7 @@ mod tests {
     fn test_write_image_limit() {
         // source must be partitioned if we're saving partitions
         let (mut source, source_path) = tempfile::Builder::new()
-            .prefix("coreos-installer-")
+            .prefix("nestos-installer-")
             .tempfile()
             .unwrap()
             .into_parts();
@@ -462,7 +464,7 @@ mod tests {
         partition(&mut source, None);
 
         let (mut dest, dest_path) = tempfile::Builder::new()
-            .prefix("coreos-installer-")
+            .prefix("nestos-installer-")
             .tempfile()
             .unwrap()
             .into_parts();

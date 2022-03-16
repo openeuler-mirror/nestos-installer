@@ -1,0 +1,9 @@
+[Unit]
+Description=NestOS Installer Target
+
+Requires=nestos-installer-pre.target
+Requires=nestos-installer.service
+
+# Run after most things are up
+Requires=basic.target
+After=basic.target

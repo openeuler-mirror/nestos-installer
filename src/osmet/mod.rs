@@ -347,7 +347,7 @@ fn write_packed_image_to_file(
         // ideally this would use O_TMPFILE, but since tempfile *needs* to create a named tempfile,
         // let's give it a descriptive name and extension
         tempfile::Builder::new()
-            .prefix("coreos-installer-xzpacked")
+            .prefix("nestos-installer-xzpacked")
             .suffix(".raw.xz")
             .tempfile()
             .context("allocating packed image tempfile")?

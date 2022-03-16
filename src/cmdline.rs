@@ -13,6 +13,9 @@
 // limitations under the License.
 
 // For consistency, have all parse_*() functions return Result.
+
+// change coreos to nestos
+
 #![allow(clippy::unnecessary_wraps)]
 
 use anyhow::{bail, Context, Result};
@@ -157,7 +160,7 @@ pub fn parse_args() -> Result<Config> {
     let uname = nix::sys::utsname::uname();
     // Args are listed in --help in the order declared here.  Please keep
     // the entire help text to 80 columns.
-    let app_matches = App::new("coreos-installer")
+    let app_matches = App::new("nestos-installer")
         .version(crate_version!())
         .setting(AppSettings::SubcommandRequiredElseHelp)
         .global_setting(AppSettings::ArgsNegateSubcommands)
@@ -167,7 +170,7 @@ pub fn parse_args() -> Result<Config> {
         .global_setting(AppSettings::VersionlessSubcommands)
         .subcommand(
             SubCommand::with_name("install")
-                .about("Install Fedora CoreOS or RHEL CoreOS")
+                .about("Install NestOS")
                 // ways to specify the image source
                 .arg(
                     Arg::with_name("stream")
@@ -176,7 +179,7 @@ pub fn parse_args() -> Result<Config> {
                         .value_name("name")
                         .conflicts_with("image-file")
                         .conflicts_with("image-url")
-                        .help("Fedora CoreOS stream")
+                        .help("NestOS stream")
                         .takes_value(true),
                 )
                 .arg(
@@ -243,7 +246,7 @@ pub fn parse_args() -> Result<Config> {
                         .takes_value(true)
                         // This used to be for configuring networking from the cmdline, but it has
                         // been obsoleted by the nicer `--copy-network` approach. We still need it
-                        // for now though. It's used at least by `coreos-installer.service`.
+                        // for now though. It's used at least by `nestos-installer.service`.
                         .hidden(true),
                 )
                 .arg(
@@ -326,7 +329,7 @@ pub fn parse_args() -> Result<Config> {
                     Arg::with_name("stream-base-url")
                         .long("stream-base-url")
                         .value_name("URL")
-                        .help("Base URL for Fedora CoreOS stream metadata")
+                        .help("Base URL for NestOS stream metadata")
                         .takes_value(true),
                 )
                 .arg(
@@ -359,13 +362,13 @@ pub fn parse_args() -> Result<Config> {
         )
         .subcommand(
             SubCommand::with_name("download")
-                .about("Download a CoreOS image")
+                .about("Download a NestOS image")
                 .arg(
                     Arg::with_name("stream")
                         .short("s")
                         .long("stream")
                         .value_name("name")
-                        .help("Fedora CoreOS stream")
+                        .help("NestOS stream")
                         .default_value("stable")
                         .takes_value(true),
                 )
@@ -382,7 +385,7 @@ pub fn parse_args() -> Result<Config> {
                         .short("p")
                         .long("platform")
                         .value_name("name")
-                        .help("Fedora CoreOS platform name")
+                        .help("NestOS platform name")
                         .default_value("metal")
                         .takes_value(true),
                 )
@@ -427,7 +430,7 @@ pub fn parse_args() -> Result<Config> {
                     Arg::with_name("stream-base-url")
                         .long("stream-base-url")
                         .value_name("URL")
-                        .help("Base URL for Fedora CoreOS stream metadata")
+                        .help("Base URL for NestOS stream metadata")
                         .takes_value(true),
                 )
                 .arg(
@@ -440,13 +443,13 @@ pub fn parse_args() -> Result<Config> {
         )
         .subcommand(
             SubCommand::with_name("list-stream")
-                .about("List available images in a Fedora CoreOS stream")
+                .about("List available images in a NestOS stream")
                 .arg(
                     Arg::with_name("stream")
                         .short("s")
                         .long("stream")
                         .value_name("name")
-                        .help("Fedora CoreOS stream")
+                        .help("NestOS stream")
                         .default_value("stable")
                         .takes_value(true),
                 )
@@ -454,13 +457,13 @@ pub fn parse_args() -> Result<Config> {
                     Arg::with_name("stream-base-url")
                         .long("stream-base-url")
                         .value_name("URL")
-                        .help("Base URL for Fedora CoreOS stream metadata")
+                        .help("Base URL for NestOS stream metadata")
                         .takes_value(true),
                 ),
         )
         .subcommand(
             SubCommand::with_name("iso")
-                .about("Commands to manage a CoreOS live ISO image")
+                .about("Commands to manage a NestOS live ISO image")
                 .setting(AppSettings::SubcommandRequiredElseHelp)
                 .subcommand(
                     SubCommand::with_name("embed")
@@ -530,7 +533,7 @@ pub fn parse_args() -> Result<Config> {
                 )
                 .subcommand(
                     SubCommand::with_name("ignition")
-                        .about("Embed an Ignition config in a CoreOS live ISO image")
+                        .about("Embed an Ignition config in a NestOS live ISO image")
                         .setting(AppSettings::SubcommandRequiredElseHelp)
                         .subcommand(
                             SubCommand::with_name("embed")
@@ -600,7 +603,7 @@ pub fn parse_args() -> Result<Config> {
                 )
                 .subcommand(
                     SubCommand::with_name("kargs")
-                        .about("Modify kernel args in a CoreOS live ISO image")
+                        .about("Modify kernel args in a NestOS live ISO image")
                         .setting(AppSettings::SubcommandRequiredElseHelp)
                         .subcommand(
                             SubCommand::with_name("modify")
@@ -697,7 +700,7 @@ pub fn parse_args() -> Result<Config> {
         )
         .subcommand(
             SubCommand::with_name("pxe")
-                .about("Commands to manage a CoreOS live PXE image")
+                .about("Commands to manage a NestOS live PXE image")
                 .setting(AppSettings::SubcommandRequiredElseHelp)
                 .subcommand(
                     SubCommand::with_name("ignition")
@@ -738,13 +741,13 @@ pub fn parse_args() -> Result<Config> {
         )
         .subcommand(
             SubCommand::with_name("osmet")
-                .about("Efficient CoreOS metal disk image packing using OSTree commits")
+                .about("Efficient NestOS metal disk image packing using OSTree commits")
                 // users shouldn't be interacting with this command normally
                 .setting(AppSettings::Hidden)
                 .setting(AppSettings::SubcommandRequiredElseHelp)
                 .subcommand(
                     SubCommand::with_name("pack")
-                        .about("Create osmet file from CoreOS block device")
+                        .about("Create osmet file from NestOS block device")
                         .arg(
                             Arg::with_name("output")
                                 .long("output")

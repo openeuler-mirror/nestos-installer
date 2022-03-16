@@ -21,16 +21,16 @@ install: install-bin install-scripts install-systemd install-dracut
 
 .PHONY: install-bin
 install-bin: all
-	install -D -t ${DESTDIR}/usr/bin target/${PROFILE}/coreos-installer
+	install -D -t ${DESTDIR}/usr/bin target/${PROFILE}/nestos-installer
 
 .PHONY: install-scripts
 install-scripts: all
-	install -D -t $(DESTDIR)/usr/libexec scripts/coreos-installer-disable-device-auto-activation scripts/coreos-installer-service
+	install -D -t $(DESTDIR)/usr/libexec scripts/nestos-installer-disable-device-auto-activation scripts/nestos-installer-service
 
 .PHONY: install-systemd
 install-systemd: all
 	install -D -m 644 -t $(DESTDIR)/usr/lib/systemd/system systemd/*.{service,target}
-	install -D -t $(DESTDIR)/usr/lib/systemd/system-generators systemd/coreos-installer-generator
+	install -D -t $(DESTDIR)/usr/lib/systemd/system-generators systemd/nestos-installer-generator
 
 .PHONY: install-dracut
 install-dracut: all

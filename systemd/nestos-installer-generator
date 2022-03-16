@@ -30,11 +30,11 @@ karg_bool() {
 }
 
 if [ -n "$(karg coreos.inst.install_dev)" ]; then
-    ln -sf "/usr/lib/systemd/system/coreos-installer-post.target" \
+    ln -sf "/usr/lib/systemd/system/nestos-installer-post.target" \
         "${UNIT_DIR}/default.target"
 
-    # Create precondition for coreos-installer-reboot.service if requested
-    if ! karg_bool coreos.inst.skip_reboot; then
-        touch /run/coreos-installer-reboot
+    # Create precondition for nestos-installer-reboot.service if requested
+    if ! karg_bool nestos.inst.skip_reboot; then
+        touch /run/nestos-installer-reboot
     fi
 fi

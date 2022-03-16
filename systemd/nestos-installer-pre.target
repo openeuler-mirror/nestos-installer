@@ -1,0 +1,4 @@
+[Unit]
+Description=Prepare for NestOS Installer Target
+
+Requires=nestos-installer-disable-device-auto-activation.service

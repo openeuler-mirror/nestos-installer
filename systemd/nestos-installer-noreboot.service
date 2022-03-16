@@ -1,0 +1,14 @@
+[Unit]
+Description=Give Login Shell After NestOS Installer
+Requires=nestos-installer.target
+After=nestos-installer.target
+ConditionPathExists=!/run/nestos-installer-reboot
+
+[Service]
+Type=oneshot
+StandardInput=tty-force
+StandardOutput=inherit
+StandardError=inherit
+ExecStartPre=/usr/bin/echo -e "\nNestOS install complete. Starting login shell\n"
+ExecStart=/usr/sbin/sulogin --force
+ExecStartPost=/usr/bin/systemctl --no-block reboot

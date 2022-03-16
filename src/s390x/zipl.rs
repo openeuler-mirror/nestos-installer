@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// change coreos to nestos
+
 use crate::install::{bls_entry_options_delete_and_append_kargs, visit_bls_entry_options};
 use crate::runcmd;
 use anyhow::{anyhow, Context, Result};
@@ -35,7 +37,7 @@ pub fn zipl<P: AsRef<Path>>(boot: P) -> Result<()> {
 
     // create dummy config for zipl
     let mut conffile = Builder::new()
-        .prefix("coreos-installer-zipl.")
+        .prefix("nestos-installer-zipl.")
         .tempfile()
         .context("creating zipl config")?;
     let data = format!(
@@ -48,7 +50,7 @@ pub fn zipl<P: AsRef<Path>>(boot: P) -> Result<()> {
 
     // we have to copy bls config files for further modification
     let tempdir = Builder::new()
-        .prefix("coreos-installer-zipl-bls-")
+        .prefix("nestos-installer-zipl-bls-")
         .tempdir()
         .context("creating temporary directory")?;
     let firstboot_file = boot.join("ignition.firstboot");
@@ -92,7 +94,7 @@ pub fn zipl<P: AsRef<Path>>(boot: P) -> Result<()> {
 /// Returns the first-boot kargs embedded in the contents `s` of a firstboot file.
 ///
 /// Note this isn't intended to be a general purpose GRUB config language parser. Only the exact
-/// format used by coreos-installer is recognized. Any other format triggers an error.
+/// format used by nestos-installer is recognized. Any other format triggers an error.
 fn extract_firstboot_kargs(s: &str) -> Result<Option<String>> {
     let s = s.trim();
     if s.is_empty() {
