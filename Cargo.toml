@@ -2,7 +2,7 @@
 name = "nestos-installer"
 repository = "https://gitee.com/openeuler/nestos-installer"
 license = "Apache-2.0 "
-edition = "2022"
+edition = "2018"
 exclude = ["/.cci.jenkinsfile", "/.github", "/.gitignore", "/Dockerfile"]
 description = "Installer for NestOS"
 version = "0.10.0"
