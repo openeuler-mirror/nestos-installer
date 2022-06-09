@@ -16,13 +16,13 @@ use std::fs::{File, OpenOptions};
 use std::io::{BufReader, BufWriter, Read};
 use std::path::Path;
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{bail, Context, Result};
 use bincode::Options;
 use clap::crate_version;
 use serde::{Deserialize, Serialize};
-use xz2::read::XzDecoder;
+use xz2::bufread::XzDecoder;
 
-use crate::io::BUFFER_SIZE;
+use crate::io::{bincoder, BUFFER_SIZE};
 
 use super::*;
 
@@ -85,10 +85,11 @@ pub(super) fn osmet_file_write(
             .tempfile_in(path.parent().unwrap())?,
     );
 
-    bincoder()
+    let coder = &mut bincoder();
+    coder
         .serialize_into(&mut f, &header)
         .context("failed to serialize osmet file header")?;
-    bincoder()
+    coder
         .serialize_into(&mut f, &osmet)
         .context("failed to serialize osmet")?;
 
@@ -168,7 +169,7 @@ fn validate_osmet(osmet: &Osmet) -> Result<()> {
                 verify_canonical(&partition.mappings)
                     .with_context(|| format!("partition {}", i))?,
             )
-            .ok_or_else(|| anyhow!("overflow after partition {}", i))?;
+            .with_context(|| format!("overflow after partition {}", i))?;
         if cursor > partition.end_offset {
             bail!(
                 "cursor past partition end: {} vs {}",
@@ -196,17 +197,8 @@ fn verify_canonical(mappings: &[Mapping]) -> Result<u64> {
             .extent
             .physical
             .checked_add(mapping.extent.length)
-            .ok_or_else(|| anyhow!("overflow after mapping {}", i))?;
+            .with_context(|| format!("overflow after mapping {}", i))?;
     }
 
     Ok(cursor)
-}
-
-fn bincoder() -> impl bincode::Options {
-    bincode::options()
-        .allow_trailing_bytes()
-        // make the defaults explicit
-        .with_no_limit()
-        .with_little_endian()
-        .with_varint_encoding()
 }

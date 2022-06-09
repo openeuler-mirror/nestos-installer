@@ -1,5 +1,4 @@
 ---
-layout: default
 parent: Command line reference
 nav_order: 5
 ---
@@ -10,31 +9,143 @@ nav_order: 5
 1. TOC
 {:toc}
 
+# nestos-installer pxe customize
+
+```
+Create a custom live PXE boot config
+
+USAGE:
+    nestos-installer pxe customize [OPTIONS] --output <path> <path>
+
+ARGS:
+    <path>
+            NestOS live initramfs image
+
+OPTIONS:
+        --dest-ignition <path>
+            Ignition config fragment for dest sys
+
+            Automatically run installer and merge the specified Ignition config into the config
+            for the destination system.
+
+        --dest-device <path>
+            Install destination device
+
+            Automatically run installer, installing to the specified destination device.  The
+            resulting boot media will overwrite the destination device without confirmation.
+
+        --dest-karg-append <arg>
+            Destination kernel argument to append
+
+            Automatically run installer, adding the specified kernel argument for every boot of
+            the destination system.
+
+        --dest-karg-delete <arg>
+            Destination kernel argument to delete
+
+            Automatically run installer, deleting the specified kernel argument for every boot
+            of the destination system.
+
+        --network-keyfile <path>
+            NetworkManager keyfile for live & dest
+
+            Configure networking using the specified NetworkManager keyfile. Network settings
+            will be applied in the live environment, including when Ignition is run.  If
+            installer is enabled via additional options, network settings will also be applied
+            in the destination system, including when Ignition is run.
+
+        --ignition-ca <path>
+            Ignition PEM CA bundle for live & dest
+
+            Specify additional TLS certificate authorities to be trusted by Ignition, in PEM
+            format.  Authorities will be trusted by Ignition in the live environment and, if
+            installer is enabled via additional options, in the destination system.
+
+        --pre-install <path>
+            Script to run before installation
+
+            If installer is run at boot, run this script before installation. If the script
+            fails, the live environment will stop at an emergency shell.
+
+        --post-install <path>
+            Script to run after installation
+
+            If installer is run at boot, run this script after installation. If the script
+            fails, the live environment will stop at an emergency shell.
+
+        --installer-config <path>
+            Installer config file
+
+            Automatically run nestos-installer and apply the specified installer config file.
+            Config files are applied in the order that they are specified.
+
+        --live-ignition <path>
+            Ignition config fragment for live env
+
+            Merge the specified Ignition config into the config for the live environment.
+
+    -o, --output <path>
+            Output file
+
+    -h, --help
+            Print help information
+```
+
 # nestos-installer pxe ignition wrap
 
-## Description
-
+```
 Wrap an Ignition config in an initrd image
 
-## Usage
+USAGE:
+    nestos-installer pxe ignition wrap [OPTIONS]
 
-**nestos-installer pxe ignition wrap**
-
-## Options
-
-| **--ignition-file**, **-i** *path* | Ignition config to wrap [default: stdin] |
-| **--output**, **-o** *path* | Write to a file instead of stdout |
+OPTIONS:
+    -i, --ignition-file <path>    Ignition config to wrap [default: stdin]
+    -o, --output <path>           Write to a file instead of stdout
+    -h, --help                    Print help information
+```
 
 # nestos-installer pxe ignition unwrap
 
-## Description
-
+```
 Show the wrapped Ignition config in an initrd image
 
-## Usage
+USAGE:
+    nestos-installer pxe ignition unwrap [initrd]
 
-**nestos-installer pxe ignition unwrap** *initrd*
+ARGS:
+    <initrd>    initrd image [default: stdin]
 
-## Arguments
+OPTIONS:
+    -h, --help    Print help information
+```
 
-| **initrd** | initrd image |
+# nestos-installer pxe network wrap
+
+```
+Wrap network settings in an initrd image
+
+USAGE:
+    nestos-installer pxe network wrap [OPTIONS] --keyfile <path>
+
+OPTIONS:
+    -k, --keyfile <path>    NetworkManager keyfile to embed
+    -o, --output <path>     Write to a file instead of stdout
+    -h, --help              Print help information
+```
+
+# nestos-installer pxe network unwrap
+
+```
+Extract wrapped network settings from an initrd image
+
+USAGE:
+    nestos-installer pxe network unwrap [OPTIONS] [initrd]
+
+ARGS:
+    <initrd>    initrd image [default: stdin]
+
+OPTIONS:
+    -C, --directory <path>    Extract to directory instead of stdout
+    -h, --help                Print help information
+```

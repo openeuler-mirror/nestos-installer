@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::convert::{TryFrom, TryInto};
 use std::ffi::OsStr;
 use std::fs::{File, OpenOptions};
 use std::io::{self, copy, ErrorKind, Read, Seek, SeekFrom, Write};
@@ -20,11 +19,12 @@ use std::os::unix::ffi::{OsStrExt, OsStringExt};
 use std::path::{Path, PathBuf};
 use std::thread;
 
-use anyhow::{bail, Context, Error, Result};
+use anyhow::{bail, Context, Result};
 use openssl::hash::{Hasher, MessageDigest};
 use xz2::read::XzDecoder;
 
 use super::*;
+use crate::io::WriteHasher;
 
 /// Path to OSTree repo of sysroot.
 const SYSROOT_OSTREE_REPO: &str = "/sysroot/ostree/repo";
@@ -37,12 +37,12 @@ pub struct OsmetUnpacker {
 
 impl OsmetUnpacker {
     pub fn new(osmet: &Path, repo: &Path) -> Result<Self> {
-        let (_, osmet, xzpacked_image) = osmet_file_read(&osmet)?;
+        let (_, osmet, xzpacked_image) = osmet_file_read(osmet)?;
         Ok(Self::new_impl(osmet, xzpacked_image, repo))
     }
 
     pub fn new_from_sysroot(osmet: &Path) -> Result<Self> {
-        let (_, osmet, xzpacked_image) = osmet_file_read(&osmet)?;
+        let (_, osmet, xzpacked_image) = osmet_file_read(osmet)?;
         Ok(Self::new_impl(
             osmet,
             xzpacked_image,
@@ -74,23 +74,18 @@ impl OsmetUnpacker {
 impl Read for OsmetUnpacker {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         let n = self.reader.read(buf)?;
-        if n == 0 {
-            match self
-                .thread_handle
-                .take()
-                .expect("pending thread")
-                .join()
-                .expect("joining thread")
-            {
-                Ok(_) => Ok(0),
-                Err(e) => Err(io::Error::new(
-                    ErrorKind::Other,
-                    format!("while unpacking: {}", e),
-                )),
+        if n == 0 && !buf.is_empty() {
+            if let Some(thread_handle) = self.thread_handle.take() {
+                return match thread_handle.join().expect("joining thread") {
+                    Ok(_) => Ok(0),
+                    Err(e) => Err(io::Error::new(
+                        ErrorKind::Other,
+                        format!("while unpacking: {}", e),
+                    )),
+                };
             }
-        } else {
-            Ok(n)
         }
+        Ok(n)
     }
 }
 
@@ -102,40 +97,8 @@ pub(super) fn get_unpacked_image_digest(
     let mut hasher = Hasher::new(MessageDigest::sha256()).context("creating SHA256 hasher")?;
     let repo = root.mountpoint().join("ostree/repo");
     let mut packed_image = XzDecoder::new(xzpacked_image);
-    let n = write_unpacked_image(&mut packed_image, &mut hasher, &partitions, &repo)?;
+    let n = write_unpacked_image(&mut packed_image, &mut hasher, partitions, &repo)?;
     Ok((hasher.try_into()?, n))
-}
-
-struct WriteHasher<W: Write> {
-    writer: W,
-    hasher: Hasher,
-}
-
-impl<W: Write> Write for WriteHasher<W> {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        if buf.is_empty() {
-            return Ok(0);
-        }
-
-        let n = self.writer.write(buf)?;
-        self.hasher.write_all(&buf[..n])?;
-
-        Ok(n)
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        self.writer.flush()?;
-        self.hasher.flush()?;
-        Ok(())
-    }
-}
-
-impl<W: Write> TryFrom<WriteHasher<W>> for Sha256Digest {
-    type Error = Error;
-
-    fn try_from(wrapper: WriteHasher<W>) -> std::result::Result<Self, Self::Error> {
-        Sha256Digest::try_from(wrapper.hasher)
-    }
 }
 
 fn osmet_unpack_to_writer(
@@ -144,10 +107,7 @@ fn osmet_unpack_to_writer(
     repo: PathBuf,
     writer: impl Write,
 ) -> Result<()> {
-    let hasher = Hasher::new(MessageDigest::sha256()).context("creating SHA256 hasher")?;
-
-    let mut w = WriteHasher { writer, hasher };
-
+    let mut w = WriteHasher::new_sha256(writer)?;
     let n = write_unpacked_image(&mut packed_image, &mut w, &osmet.partitions, &repo)?;
     if n != osmet.size {
         bail!("wrote {} bytes but expected {}", n, osmet.size);

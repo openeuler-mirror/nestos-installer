@@ -1,5 +1,4 @@
 ---
-layout: default
 nav_order: 2
 ---
 
@@ -107,7 +106,7 @@ line.
 Download a NestOS ISO image:
 
 ```
-podman run --privileged --pull=always --rm -v .:/data -w /data \
+podman run --security-opt label=disable --pull=always --rm -v .:/data -w /data \
     quay.io/coreos/coreos-installer:release download -f iso
 ```
 
@@ -132,7 +131,7 @@ qemu-img create -f qcow2 fcos.qcow2 8G
 Now, run the following qemu command:
 
 ```
-qemu-system-x86_64 -accel kvm -name nestos -m 4500 -cpu host -smp 2 -netdev user,id=eth0,hostname=nestos -device virtio-net-pci,netdev=eth0 -drive file=/path/to/fcos.qcow2,format=qcow2  -cdrom /path/to/NestOS-xxx.iso
+qemu-system-x86_64 -accel kvm -name nestos -m 4500 -cpu host -smp 2 -netdev user,id=eth0,hostname=nestos -device virtio-net-pci,netdev=eth0 -drive file=/path/to/nestos.qcow2,format=qcow2  -cdrom /path/to/NestOS-xxx.iso
 ```
 
 Once you have reached the boot menu, press `<TAB>` (isolinux) or
@@ -154,7 +153,7 @@ embedded Ignition config will run on first boot.
 Download a NestOS PXE kernel, initramfs, and rootfs image:
 
 ```
-podman run --privileged --pull=always --rm -v .:/data -w /data \
+podman run --security-opt label=disable --pull=always --rm -v .:/data -w /data \
     quay.io/coreos/coreos-installer:release download -f pxe
 ```
 

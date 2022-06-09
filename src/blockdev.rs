@@ -19,9 +19,7 @@ use gptman::{GPTPartitionEntry, GPT};
 use nix::sys::stat::{major, minor};
 use nix::{errno::Errno, mount, sched};
 use regex::Regex;
-use std::collections::HashMap;
-use std::convert::TryInto;
-use std::env;
+use std::collections::{HashMap, HashSet};
 use std::fs::{
     canonicalize, metadata, read_dir, read_to_string, remove_dir, symlink_metadata, File,
     OpenOptions,
@@ -34,7 +32,6 @@ use std::os::unix::fs::FileTypeExt;
 use std::os::unix::io::AsRawFd;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::sync::Once;
 use std::thread::sleep;
 use std::time::Duration;
 use uuid::Uuid;
@@ -69,14 +66,9 @@ impl Disk {
         Ok(Disk { path: canon_path })
     }
 
-    pub fn mount_partition_by_label(
-        &self,
-        label: &str,
-        allow_holder: bool,
-        flags: mount::MsFlags,
-    ) -> Result<Mount> {
+    pub fn mount_partition_by_label(&self, label: &str, flags: mount::MsFlags) -> Result<Mount> {
         // get partition list
-        let partitions = self.get_partitions(allow_holder)?;
+        let partitions = self.get_partitions()?;
         if partitions.is_empty() {
             bail!("couldn't find any partitions on {}", self.path);
         }
@@ -98,7 +90,7 @@ impl Disk {
 
         // mount it
         match &part.fstype {
-            Some(fstype) => Mount::try_mount(&part.path, &fstype, flags),
+            Some(fstype) => Mount::try_mount(&part.path, fstype, flags),
             None => bail!(
                 "couldn't get filesystem type of {} device for {}",
                 label,
@@ -107,24 +99,16 @@ impl Disk {
         }
     }
 
-    fn get_partitions(&self, with_holders: bool) -> Result<Vec<Partition>> {
+    fn get_partitions(&self) -> Result<Vec<Partition>> {
         // walk each device in the output
         let mut result: Vec<Partition> = Vec::new();
         for devinfo in lsblk(Path::new(&self.path), true)? {
             if let Some(name) = devinfo.get("NAME") {
-                match devinfo.get("TYPE") {
-                    // If unknown type, skip.
-                    None => continue,
-                    // If whole-disk device, skip.
-                    Some(t) if t == &"disk".to_string() => continue,
-                    // If partition, allow.
-                    Some(t) if t == &"part".to_string() => (),
-                    // If with_holders is true, allow anything else.
-                    Some(_) if with_holders => (),
-                    // Ignore LVM or RAID devices which are using one of the
-                    // partitions but aren't a partition themselves.
-                    _ => continue,
-                };
+                // Only return partitions.  Skip the whole-disk device, as well
+                // as holders like LVM or RAID devices using one of the partitions.
+                if devinfo.get("TYPE").map(|s| s.as_str()) != Some("part") {
+                    continue;
+                }
                 let (mountpoint, swap) = match devinfo.get("MOUNTPOINT") {
                     Some(mp) if mp == "[SWAP]" => (None, true),
                     Some(mp) => (Some(mp.to_string()), false),
@@ -153,7 +137,7 @@ impl Disk {
                 .write(true)
                 .open(&self.path)
                 .with_context(|| format!("opening {}", &self.path))?;
-            reread_partition_table(&mut f).map(|_| Vec::new())
+            reread_partition_table(&mut f, false).map(|_| Vec::new())
         };
         if rereadpt_result.is_ok() {
             return rereadpt_result;
@@ -162,7 +146,7 @@ impl Disk {
         // Walk partitions, record the ones that are reported in use,
         // and return the list if any
         let mut busy: Vec<Partition> = Vec::new();
-        for d in self.get_partitions(false)? {
+        for d in self.get_partitions()? {
             if d.mountpoint.is_some() || d.swap || !d.get_holders()?.is_empty() {
                 busy.push(d)
             }
@@ -214,7 +198,6 @@ pub trait PartTable {
 /// Device nodes for partitionable kernel devices, managed by the kernel.
 #[derive(Debug)]
 pub struct PartTableKernel {
-    path: String,
     file: File,
 }
 
@@ -224,16 +207,13 @@ impl PartTableKernel {
             .write(true)
             .open(path)
             .with_context(|| format!("opening {}", path))?;
-        Ok(Self {
-            path: path.to_string(),
-            file,
-        })
+        Ok(Self { file })
     }
 }
 
 impl PartTable for PartTableKernel {
     fn reread(&mut self) -> Result<()> {
-        reread_partition_table(&mut self.file)?;
+        reread_partition_table(&mut self.file, true)?;
         udev_settle()
     }
 }
@@ -356,13 +336,10 @@ impl Partition {
         // easier.
         let start_offset: u64 = start
             .checked_mul(512)
-            .ok_or_else(|| anyhow!("start offset mult overflow"))?;
+            .context("start offset mult overflow")?;
         let end_offset: u64 = start_offset
-            .checked_add(
-                size.checked_mul(512)
-                    .ok_or_else(|| anyhow!("end offset mult overflow"))?,
-            )
-            .ok_or_else(|| anyhow!("end offset add overflow"))?;
+            .checked_add(size.checked_mul(512).context("end offset mult overflow")?)
+            .context("end offset add overflow")?;
         Ok((start_offset, end_offset))
     }
 
@@ -446,25 +423,8 @@ impl Mount {
 
         // Ensure we're in a private mount namespace so the mount isn't
         // visible to the rest of the system.  Multiple unshare calls
-        // should be safe.  For now, skip the unshare if the
-        // COREOS_INSTALLER_NO_MOUNT_NAMESPACE environment variable is set,
-        // in case there are use cases where the unshare call fails.
-        // https://github.com/coreos/coreos-installer/issues/557
-        match env::var("NESTOS_INSTALLER_NO_MOUNT_NAMESPACE")
-            .as_ref()
-            .map(|v| v as &str)
-        {
-            Ok("") | Err(env::VarError::NotPresent) => {
-                sched::unshare(sched::CloneFlags::CLONE_NEWNS)
-                    .context("unsharing mount namespace")?
-            }
-            _ => {
-                static WARNED: Once = Once::new();
-                WARNED.call_once(|| {
-                    eprintln!("\nMounting filesystems in parent namespace because\nNESTOS_INSTALLER_NO_MOUNT_NAMESPACE is set.  If you need this, file a bug at\nhttps://github.com/coreos/coreos-installer/issues/new/choose.\n");
-                });
-            }
-        }
+        // should be safe.
+        sched::unshare(sched::CloneFlags::CLONE_NEWNS).context("unsharing mount namespace")?;
 
         mount::mount::<str, Path, str, str>(Some(device), &mountpoint, Some(fstype), flags, None)
             .with_context(|| format!("mounting device {} on {}", device, mountpoint.display()))?;
@@ -539,7 +499,6 @@ impl Drop for Mount {
         }
         if let Err(err) = remove_dir(&self.mountpoint) {
             eprintln!("removing {}: {}", self.mountpoint.display(), err);
-            return;
         }
     }
 }
@@ -561,7 +520,7 @@ impl SavedPartitions {
         {
             bail!("specified file is not a block device");
         }
-        Self::new(disk, get_sector_size(&disk)?.get() as u64, filters)
+        Self::new(disk, get_sector_size(disk)?.get() as u64, filters)
     }
 
     /// Create a SavedPartitions for a file with a specified imputed sector
@@ -653,7 +612,7 @@ impl SavedPartitions {
         {
             return Ok(());
         }
-        let disk_sector_size = get_sector_size(&disk)?.get() as u64;
+        let disk_sector_size = get_sector_size(disk)?.get() as u64;
         if disk_sector_size != self.sector_size {
             bail!(
                 "disk sector size {} doesn't match expected {}",
@@ -824,6 +783,53 @@ pub fn lsblk_single(dev: &Path) -> Result<HashMap<String, String>> {
     Ok(devinfos.remove(0))
 }
 
+/// Returns all available filesystems.
+/// rereadpt mitigates possible issue with outdated UUIDs on different
+/// paths to the same disk: after 'ignition-ostree-firstboot-uuid'
+/// '/dev/sdaX' path gets new UUID, but '/dev/sdbX/' path has an old one
+fn get_all_filesystems(rereadpt: bool) -> Result<Vec<HashMap<String, String>>> {
+    if rereadpt {
+        let mut cmd = Command::new("lsblk");
+        cmd.arg("--noheadings")
+            .arg("--nodeps")
+            .arg("--list")
+            .arg("--paths")
+            .arg("--output")
+            .arg("NAME");
+        let output = cmd_output(&mut cmd)?;
+        for dev in output.lines() {
+            if let Ok(mut fd) = std::fs::File::open(dev) {
+                // best-effort reread of disk that may have busy partitions; don't retry
+                let _ = reread_partition_table(&mut fd, false);
+            }
+        }
+        udev_settle()?;
+    }
+    blkid()
+}
+
+/// Returns filesystems with given label.
+/// If multiple filesystems with the label have the same UUID, we only return one of them.
+pub fn get_filesystems_with_label(label: &str, rereadpt: bool) -> Result<Vec<String>> {
+    let mut uuids = HashSet::new();
+    let result = get_all_filesystems(rereadpt)?
+        .iter()
+        .filter(|v| v.get("LABEL").map(|l| l.as_str()) == Some(label))
+        .filter(|v| match v.get("UUID") {
+            Some(uuid) => {
+                if !uuid.is_empty() {
+                    uuids.insert(uuid)
+                } else {
+                    true
+                }
+            }
+            None => true,
+        })
+        .filter_map(|v| v.get("NAME").map(<_>::to_owned))
+        .collect();
+    Ok(result)
+}
+
 pub fn lsblk(dev: &Path, with_deps: bool) -> Result<Vec<HashMap<String, String>>> {
     let mut cmd = Command::new("lsblk");
     // Older lsblk, e.g. in CentOS 7.6, doesn't support PATH, but --paths option
@@ -844,10 +850,133 @@ pub fn lsblk(dev: &Path, with_deps: bool) -> Result<Vec<HashMap<String, String>>
     Ok(result)
 }
 
+/// Parse key-value pairs from blkid.
+fn split_blkid_line(line: &str) -> HashMap<String, String> {
+    let (name, data) = match line.find(':') {
+        Some(n) => line.split_at(n),
+        None => return HashMap::new(),
+    };
+
+    let (name, data) = (name.trim(), data[1..].trim());
+    if name.is_empty() {
+        return HashMap::new();
+    }
+
+    let mut fields = split_lsblk_line(data);
+    fields.insert("NAME".to_string(), name.to_string());
+    fields
+}
+
+fn blkid() -> Result<Vec<HashMap<String, String>>> {
+    let mut cmd = Command::new("blkid");
+    let output = cmd_output(&mut cmd)?;
+
+    let mut result: Vec<HashMap<String, String>> = Vec::new();
+    for line in output.lines() {
+        result.push(split_blkid_line(line));
+    }
+    Ok(result)
+}
+
+/// This is a bit fuzzy, but... this function will return every block device in the parent
+/// hierarchy of `device` capable of containing other partitions. So e.g. parent devices of type
+/// "part" doesn't match, but "disk" and "mpath" does.
+pub fn find_parent_devices(device: &str) -> Result<Vec<String>> {
+    let mut cmd = Command::new("lsblk");
+    // Older lsblk, e.g. in CentOS 7.6, doesn't support PATH, but --paths option
+    cmd.arg("--pairs")
+        .arg("--paths")
+        .arg("--inverse")
+        .arg("--output")
+        .arg("NAME,TYPE")
+        .arg(device);
+    let output = cmd_output(&mut cmd)?;
+    let mut parents = Vec::new();
+    // skip first line, which is the device itself
+    for line in output.lines().skip(1) {
+        let dev = split_lsblk_line(line);
+        let name = dev
+            .get("NAME")
+            .with_context(|| format!("device in hierarchy of {} missing NAME", device))?;
+        let kind = dev
+            .get("TYPE")
+            .with_context(|| format!("device in hierarchy of {} missing TYPE", device))?;
+        if kind == "disk" {
+            parents.push(name.clone());
+        } else if kind == "mpath" {
+            parents.push(name.clone());
+            // we don't need to know what disks back the multipath
+            break;
+        }
+    }
+    if parents.is_empty() {
+        bail!("no parent devices found for {}", device);
+    }
+    Ok(parents)
+}
+
+/// Find ESP partitions which sit at the same hierarchy level as `device`.
+pub fn find_colocated_esps(device: &str) -> Result<Vec<String>> {
+    const ESP_TYPE_GUID: &str = "c12a7328-f81f-11d2-ba4b-00a0c93ec93b";
+
+    // first, get the parent device
+    let parent_devices = find_parent_devices(device)
+        .with_context(|| format!("while looking for colocated ESPs of '{}'", device))?;
+
+    // now, look for all ESPs on those devices
+    let mut esps = Vec::new();
+    for parent_device in parent_devices {
+        let mut cmd = Command::new("lsblk");
+        // Older lsblk, e.g. in CentOS 7.6, doesn't support PATH, but --paths option
+        cmd.arg("--pairs")
+            .arg("--paths")
+            .arg("--output")
+            .arg("NAME,PARTTYPE")
+            .arg(parent_device);
+        for line in cmd_output(&mut cmd)?.lines() {
+            let dev = split_lsblk_line(line);
+            if dev.get("PARTTYPE").map(|t| t.as_str()) == Some(ESP_TYPE_GUID) {
+                esps.push(
+                    dev.get("NAME")
+                        .cloned()
+                        .context("ESP device with missing NAME")?,
+                )
+            }
+        }
+    }
+    Ok(esps)
+}
+
+/// This is basically a Rust version of:
+/// https://github.com/coreos/coreos-assembler/blob/d3c7ec094a02/src/cmd-buildextend-live#L492-L495
+pub fn find_efi_vendor_dir(efi_mount: &Mount) -> Result<PathBuf> {
+    let p = efi_mount.mountpoint().join("EFI");
+    let mut vendor_dir: Vec<PathBuf> = Vec::new();
+    for ent in p.read_dir()? {
+        let ent = ent.with_context(|| format!("reading directory entry in {}", p.display()))?;
+        if !ent.file_type()?.is_dir() {
+            continue;
+        }
+        let path = ent.path();
+        if path.join("grub.cfg").is_file() {
+            vendor_dir.push(path);
+        }
+    }
+    if vendor_dir.len() != 1 {
+        bail!(
+            "Expected one vendor dir on {}, got {} ({:?})",
+            efi_mount.device(),
+            vendor_dir.len(),
+            vendor_dir,
+        );
+    }
+    Ok(vendor_dir.pop().unwrap())
+}
+
 /// Parse key-value pairs from lsblk --pairs.
 /// Newer versions of lsblk support JSON but the one in CentOS 7 doesn't.
 fn split_lsblk_line(line: &str) -> HashMap<String, String> {
-    let re = Regex::new(r#"([A-Z-]+)="([^"]+)""#).unwrap();
+    let re = Regex::new(r#"([A-Z-_]+)="([^"]+)""#).unwrap();
     let mut fields: HashMap<String, String> = HashMap::new();
     for cap in re.captures_iter(line) {
         fields.insert(cap[1].to_string(), cap[2].to_string());
@@ -890,30 +1019,24 @@ pub fn get_blkdev_deps_recursing(device: &Path) -> Result<Vec<PathBuf>> {
     Ok(ret)
 }
 
-fn reread_partition_table(file: &mut File) -> Result<()> {
+fn reread_partition_table(file: &mut File, retry: bool) -> Result<()> {
     let fd = file.as_raw_fd();
     // Reread sometimes fails inexplicably.  Retry several times before
     // giving up.
-    for retries in (0..20).rev() {
+    let max_tries = if retry { 20 } else { 1 };
+    for retries in (0..max_tries).rev() {
         let result = unsafe { ioctl::blkrrpart(fd) };
         match result {
             Ok(_) => break,
-            Err(err) => {
-                if retries == 0 {
-                    if err == nix::Error::from_errno(Errno::EINVAL) {
-                        return Err(err).context(
-                            "couldn't reread partition table: device may not support partitions",
-                        );
-                    } else if err == nix::Error::from_errno(Errno::EBUSY) {
-                        return Err(err)
-                            .context("couldn't reread partition table: device is in use");
-                    } else {
-                        return Err(err).context("couldn't reread partition table");
-                    }
-                } else {
-                    sleep(Duration::from_millis(100));
-                }
+            Err(err) if retries == 0 && err == Errno::EINVAL => {
+                return Err(err)
+                    .context("couldn't reread partition table: device may not support partitions")
             }
+            Err(err) if retries == 0 && err == Errno::EBUSY => {
+                return Err(err).context("couldn't reread partition table: device is in use")
+            }
+            Err(err) if retries == 0 => return Err(err).context("couldn't reread partition table"),
+            Err(_) => sleep(Duration::from_millis(100)),
         }
     }
     Ok(())
@@ -947,7 +1070,7 @@ pub fn get_sector_size(file: &File) -> Result<NonZeroU32> {
             let size_u32: u32 = size
                 .try_into()
                 .with_context(|| format!("sector size {} doesn't fit in u32", size))?;
-            NonZeroU32::new(size_u32).ok_or_else(|| anyhow!("found sector size of zero"))
+            NonZeroU32::new(size_u32).context("found sector size of zero")
         }
         Err(e) => Err(anyhow!(e).context("getting sector size")),
     }
@@ -959,7 +1082,7 @@ pub fn get_block_device_size(file: &File) -> Result<NonZeroU64> {
     let mut size: libc::size_t = 0;
     match unsafe { ioctl::blkgetsize64(fd, &mut size) } {
         // just cast using `as`: there is no platform we care about today where size_t > 64bits
-        Ok(_) => NonZeroU64::new(size as u64).ok_or_else(|| anyhow!("found block size of zero")),
+        Ok(_) => NonZeroU64::new(size as u64).context("found block size of zero"),
         Err(e) => Err(anyhow!(e).context("getting block size")),
     }
 }
@@ -1086,6 +1209,50 @@ mod tests {
                 // so we just pass them through
                 String::from("LABEL") => String::from(r#"foo=\x22bar\x22 baz"#),
                 String::from("FSTYPE") => String::from("ext4"),
+            }
+        );
+    }
+
+    #[test]
+    fn blkid_split() {
+        assert_eq!(split_blkid_line(r#""#), std::collections::HashMap::new());
+        assert_eq!(split_blkid_line(r#" : "#), std::collections::HashMap::new());
+
+        assert_eq!(
+            split_blkid_line(r#": UUID="0000""#),
+            std::collections::HashMap::new()
+        );
+
+        assert_eq!(
+            split_blkid_line(r#"/dev/empty:"#),
+            hashmap! {
+                String::from("NAME") => String::from("/dev/empty")
+            }
+        );
+
+        assert_eq!(
+            split_blkid_line(
+                r#"/dev/mapper/luks-f022921b-0100-4d48-9812-cfa6c225060a: UUID="2ff16ac3-103f-41d4-8e02-03686e255270" BLOCK_SIZE="4096" TYPE="ext4""#
+            ),
+            hashmap! {
+                String::from("NAME") => String::from("/dev/mapper/luks-f022921b-0100-4d48-9812-cfa6c225060a"),
+                String::from("UUID") => String::from("2ff16ac3-103f-41d4-8e02-03686e255270"),
+                String::from("TYPE") => String::from("ext4"),
+                String::from("BLOCK_SIZE") => String::from("4096")
+            }
+        );
+
+        assert_eq!(
+            split_blkid_line(
+                r#"/dev/vdb4: UUID="fdc69fb1-d7f3-4696-846e-b2275504f63c" LABEL="crypt_rootfs" TYPE="crypto_LUKS" PARTLABEL="root" PARTUUID="835753cb-d7f0-465e-84db-07860d3da2f6""#
+            ),
+            hashmap! {
+                String::from("NAME") => String::from("/dev/vdb4"),
+                String::from("LABEL") => String::from("crypt_rootfs"),
+                String::from("UUID") => String::from("fdc69fb1-d7f3-4696-846e-b2275504f63c"),
+                String::from("TYPE") => String::from("crypto_LUKS"),
+                String::from("PARTLABEL") => String::from("root"),
+                String::from("PARTUUID") => String::from("835753cb-d7f0-465e-84db-07860d3da2f6"),
             }
         );
     }
