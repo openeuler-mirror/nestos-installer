@@ -16,17 +16,19 @@ mod cmdline;
 mod kargs;
 mod rootmap;
 mod stream_hash;
+mod unique_fs;
 
-use anyhow::{Context, Result};
+use anyhow::Result;
+use clap::Parser;
 
 use crate::cmdline::*;
 
 fn main() -> Result<()> {
-    let config = cmdline::parse_args().context("parsing arguments")?;
-
-    match config {
-        Config::Kargs(c) => kargs::kargs(&c),
-        Config::RootMap(c) => rootmap::rootmap(&c),
-        Config::StreamHash(c) => stream_hash::stream_hash(&c),
+    match Cmd::parse() {
+        Cmd::Kargs(c) => kargs::kargs(c),
+        Cmd::Rootmap(c) => rootmap::rootmap(c),
+        Cmd::BindBoot(c) => rootmap::bind_boot(c),
+        Cmd::StreamHash(c) => stream_hash::stream_hash(c),
+        Cmd::VerifyUniqueFsLabel(c) => unique_fs::verify_unique_fs(c),
     }
 }

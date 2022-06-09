@@ -17,28 +17,44 @@
 use anyhow::{anyhow, bail, Context, Result};
 use byte_unit::Byte;
 use nix::unistd::isatty;
+use reqwest::Url;
 use std::fs::{remove_file, File, OpenOptions};
 use std::io::{self, copy, stderr, BufReader, BufWriter, Cursor, Read, Seek, SeekFrom, Write};
 use std::num::{NonZeroU32, NonZeroU64};
 use std::os::unix::io::AsRawFd;
 use std::path::{Path, PathBuf};
-use std::result;
 use std::time::{Duration, Instant};
 
 use crate::blockdev::{detect_formatted_sector_size, get_gpt_size, SavedPartitions};
 use crate::cmdline::*;
 use crate::io::*;
 use crate::source::*;
-use crate::verify::*;
 
 // Download all artifacts for an image and verify their signatures.
-pub fn download(config: &DownloadConfig) -> Result<()> {
+pub fn download(config: DownloadConfig) -> Result<()> {
+    // Build image location.  Ideally the parser would use conflicts_with
+    // (and an ArgGroup for streams), but that doesn't play well with
+    // default arguments, so we manually prioritize modes.
+    let location: Box<dyn ImageLocation> = if let Some(image_url) = &config.image_url {
+        Box::new(UrlLocation::new(image_url, config.fetch_retries))
+    } else {
+        Box::new(StreamLocation::new(
+            &config.stream,
+            config.architecture.as_str(),
+            &config.platform,
+            &config.format,
+            config.stream_base_url.as_ref(),
+            config.fetch_retries,
+        )?)
+    };
+    eprintln!("{}", location);
+
     // walk sources
-    let mut sources = config.location.sources()?;
+    let mut sources = location.sources()?;
     if sources.is_empty() {
         bail!("no artifacts found");
     }
-    for mut source in sources.iter_mut() {
+    for source in sources.iter_mut() {
         // set up image source
         if source.signature.is_none() {
             if config.insecure {
@@ -49,34 +65,36 @@ pub fn download(config: &DownloadConfig) -> Result<()> {
         }
 
         // calculate paths
-        let filename = if config.decompress {
-            // Drop any compression suffix.  Hacky.
-            source
-                .filename
-                .trim_end_matches(".gz")
-                .trim_end_matches(".xz")
-                .to_string()
-        } else {
-            source.filename.to_string()
-        };
+        let (decompress, filename) = should_decompress(config.decompress, &source.filename);
         let mut path = PathBuf::new();
         path.push(&config.directory);
-        path.push(&filename);
-        let sig_path = path.with_file_name(format!("{}.sig", &filename));
+        path.push(filename);
+        let sig_path = path.with_file_name(format!("{}.sig", filename));
 
         // check existing image and signature; don't redownload if OK
         // If we decompressed last time, the call will fail because we can't
         // check the old signature.  If we didn't decompress last time but are
         // decompressing this time, we're not smart enough to decompress the
         // existing file.
-        if !config.decompress && check_image_and_sig(&source, &path, &sig_path).is_ok() {
+        if !decompress
+            && check_image_and_sig(source, &path, &sig_path, VerifyKeys::Production).is_ok()
+        {
             // report the output file path and keep going
             println!("{}", path.display());
             continue;
         }
 
-        // write the image and signature
-        if let Err(err) = write_image_and_sig(&mut source, &path, &sig_path, config.decompress) {
+        // Write the image and signature.  Only write the signature if we
+        // weren't asked to decompress, regardless of whether we actually
+        // did.
+        if let Err(err) = write_image_and_sig(
+            source,
+            &path,
+            &sig_path,
+            decompress,
+            !config.decompress,
+            VerifyKeys::Production,
+        ) {
             // delete output files, which may not have been created yet
             let _ = remove_file(&path);
             let _ = remove_file(&sig_path);
@@ -92,10 +110,43 @@ pub fn download(config: &DownloadConfig) -> Result<()> {
     Ok(())
 }
 
+/// Take the value of the command-line compression option and the remote
+/// filename and decide whether we should actually decompress and to what
+/// output filename.
+fn should_decompress(enabled: bool, filename: &str) -> (bool, &str) {
+    // Only decompress if a recognized compression suffix exists.  This
+    // avoids trying to decompress files where the compression is an
+    // inherent part of the file format.  In particular, it avoids
+    // corrupting non-x86_64 PXE initramfs images by truncating off the
+    // appended cpio archive, or decompressing aarch64 kernels.
+
+    #[allow(clippy::if_same_then_else)] // readability
+    if !enabled {
+        (false, filename)
+    } else if filename.ends_with(".tar.gz") || filename.ends_with(".tar.xz") {
+        // In general, an uncompressed .tar file isn't especially useful,
+        // since we've only done half the decoding.  In particular, GCP
+        // images are .tar.gz but are not intended to be unpacked; GCP will
+        // not accept a bare .tar file.
+        (false, filename)
+    } else if filename.ends_with(".gz") {
+        (true, filename.trim_end_matches(".gz"))
+    } else if filename.ends_with(".xz") {
+        (true, filename.trim_end_matches(".xz"))
+    } else {
+        (false, filename)
+    }
+}
+
 // Check an existing image and signature for validity.  The image cannot
 // have been decompressed after downloading.  Return an error if invalid for
 // any reason.
-fn check_image_and_sig(source: &ImageSource, path: &Path, sig_path: &Path) -> Result<()> {
+fn check_image_and_sig(
+    source: &ImageSource,
+    path: &Path,
+    sig_path: &Path,
+    keys: VerifyKeys,
+) -> Result<()> {
     // ensure we have something to check
     if source.signature.is_none() {
         bail!("no signature available; can't check existing file");
@@ -122,17 +173,25 @@ fn check_image_and_sig(source: &ImageSource, path: &Path, sig_path: &Path) -> Re
         .with_context(|| format!("opening {}", path.display()))?;
 
     // perform GPG verification
-    GpgReader::new(&mut file, signature)?.consume()?;
+    let mut reader = VerifyReader::new(
+        BufReader::with_capacity(BUFFER_SIZE, &mut file),
+        Some(signature),
+        keys,
+    )?;
+    copy(&mut reader, &mut io::sink())?;
+    reader.verify_without_logging_failure()?;
 
     Ok(())
 }
 
-/// Copy the image to disk, and also the signature if appropriate.
+/// Copy the image to disk, and also the signature if requested.
 fn write_image_and_sig(
     source: &mut ImageSource,
     path: &Path,
     sig_path: &Path,
     decompress: bool,
+    save_sig: bool,
+    keys: VerifyKeys,
 ) -> Result<()> {
     // open output
     let mut dest = OpenOptions::new()
@@ -152,10 +211,11 @@ fn write_image_and_sig(
         decompress,
         None,
         None,
+        keys,
     )?;
 
-    // write signature, if relevant
-    if let (false, Some(signature)) = (decompress, source.signature.as_ref()) {
+    // write signature, if requested
+    if let (true, Some(signature)) = (save_sig, source.signature.as_ref()) {
         let mut sig_dest = OpenOptions::new()
             .write(true)
             .create(true)
@@ -171,6 +231,7 @@ fn write_image_and_sig(
 }
 
 /// Copy the image to disk and verify its signature.
+#[allow(clippy::too_many_arguments)]
 pub fn write_image<F>(
     source: &mut ImageSource,
     dest: &mut File,
@@ -179,49 +240,45 @@ pub fn write_image<F>(
     decompress: bool,
     saved: Option<&SavedPartitions>,
     expected_sector_size: Option<NonZeroU32>,
+    keys: VerifyKeys,
 ) -> Result<()>
 where
     F: FnOnce(&[u8], &mut dyn Read, &mut File, &Path, Option<&SavedPartitions>) -> Result<()>,
 {
-    // wrap source for GPG verification
-    let mut verify_reader: Box<dyn Read> = {
-        if let Some(signature) = source.signature.as_ref() {
-            Box::new(GpgReader::new(&mut source.reader, signature)?)
-        } else {
-            Box::new(&mut source.reader)
-        }
-    };
+    // wrap source for signature verification, if available
+    // keep the reader so we can explicitly check the result afterward
+    let mut verify_reader =
+        VerifyReader::new(&mut source.reader, source.signature.as_deref(), keys)?;
 
     // wrap again for progress reporting
-    let mut progress_reader = ProgressReader::new(
+    let mut reader: Box<dyn Read> = Box::new(ProgressReader::new(
         &mut verify_reader,
         source.length_hint,
         &source.artifact_type,
-    );
+    ));
 
     // Wrap in a BufReader so DecompressReader can peek at the first few
     // bytes for format sniffing, and to amortize read overhead.  Don't
     // trust the content-type since the server may not be configured
     // correctly, or the file might be local.  Then wrap in a
     // DecompressReader for decompression.
-    let mut buf_reader = BufReader::with_capacity(BUFFER_SIZE, &mut progress_reader);
-    let decompress_reader: Box<dyn Read> = if decompress {
-        Box::new(DecompressReader::new(&mut buf_reader)?)
+    let buf_reader = BufReader::with_capacity(BUFFER_SIZE, reader);
+    if decompress {
+        reader = Box::new(DecompressReader::new(buf_reader)?);
     } else {
-        Box::new(buf_reader)
-    };
+        reader = Box::new(buf_reader);
+    }
 
     // Wrap again for limit checking.
     let byte_limit = saved.map(|saved| saved.get_offset()).transpose()?.flatten();
-    let mut limit_reader: Box<dyn Read> = match byte_limit {
-        None => Box::new(decompress_reader),
-        Some((limit, conflict)) => Box::new(LimitReader::new(decompress_reader, limit, conflict)),
-    };
+    if let Some((limit, conflict)) = byte_limit {
+        reader = Box::new(LimitReader::new(reader, limit, conflict));
+    }
 
     // Read the first MiB of input and, if requested, check it against the
     // image's formatted sector size.
     let mut first_mb = [0u8; 1024 * 1024];
-    limit_reader
+    reader
         .read_exact(&mut first_mb)
         .context("decoding first MiB of image")?;
     // Were we asked to check sector size?
@@ -240,7 +297,11 @@ where
     }
 
     // call the callback to copy the image
-    image_copy(&first_mb, &mut limit_reader, dest, dest_path, saved)?;
+    image_copy(&first_mb, &mut reader, dest, dest_path, saved)?;
+
+    // check signature
+    drop(reader);
+    verify_reader.verify()?;
 
     // finish I/O before closing the progress bar
     dest.sync_all().context("syncing data to disk")?;
@@ -329,7 +390,7 @@ pub fn image_copy_default(
     Ok(())
 }
 
-pub fn download_to_tempfile(url: &str, retries: FetchRetries) -> Result<File> {
+pub fn download_to_tempfile(url: &Url, retries: FetchRetries) -> Result<File> {
     let mut f = tempfile::tempfile()?;
 
     let client = new_http_client()?;
@@ -372,7 +433,7 @@ impl<'a, R: Read> ProgressReader<'a, R> {
         });
         // disable percentage reporting for zero-length files to avoid
         // division by zero
-        let length = length.map(NonZeroU64::new).flatten();
+        let length = length.and_then(NonZeroU64::new);
         ProgressReader {
             source,
             length: length.map(|l| (l, Self::format_bytes(l.get()))),
@@ -405,7 +466,7 @@ impl<'a, R: Read> ProgressReader<'a, R> {
 }
 
 impl<'a, R: Read> Read for ProgressReader<'a, R> {
-    fn read(&mut self, buf: &mut [u8]) -> result::Result<usize, io::Error> {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         let count = self.source.read(buf)?;
         self.position += count as u64;
         if self.last_report.elapsed() >= Duration::from_secs(1)
@@ -449,8 +510,118 @@ impl<'a, R: Read> Drop for ProgressReader<'a, R> {
 mod tests {
     use super::*;
     use gptman::{GPTPartitionEntry, GPT};
+    use std::fs::{read, write};
     use std::io::{Seek, SeekFrom};
+    use tempfile::TempDir;
     use uuid::Uuid;
+
+    /// Test that the fetch pipeline notices a bad signature
+    #[test]
+    fn test_signature_checks() {
+        test_one_signed_file(
+            &[0; 1 << 20][..],
+            &include_bytes!("../fixtures/verify/1M.sig")[..],
+            &[0; 1 << 20][..],
+        );
+        test_one_signed_file(
+            &include_bytes!("../fixtures/verify/1M.gz")[..],
+            &include_bytes!("../fixtures/verify/1M.gz.sig")[..],
+            &[0; 1 << 20][..],
+        );
+        test_one_signed_file(
+            &include_bytes!("../fixtures/verify/1M.xz")[..],
+            &include_bytes!("../fixtures/verify/1M.xz.sig")[..],
+            &[0; 1 << 20][..],
+        );
+    }
+
+    fn test_one_signed_file(data: &[u8], sig: &[u8], decompressed_data: &[u8]) {
+        // set up input files
+        let dir = TempDir::new().unwrap();
+        let good_path = dir.path().join("good");
+        write(&good_path, data).unwrap();
+        let good_sig_path = dir.path().join("good.sig");
+        write(&good_sig_path, sig).unwrap();
+        let bad_path = dir.path().join("bad");
+        let mut bad_data = data.to_vec();
+        bad_data.push(0);
+        write(&bad_path, &bad_data).unwrap();
+        // same contents as good_sig_path, different path
+        let bad_sig_path = dir.path().join("bad.sig");
+        write(&bad_sig_path, sig).unwrap();
+
+        // check existing copy
+        let source = FileLocation::new(good_path.to_str().unwrap())
+            .sources()
+            .unwrap()
+            .remove(0);
+        check_image_and_sig(
+            &source,
+            &good_path,
+            &good_sig_path,
+            VerifyKeys::InsecureTest,
+        )
+        .unwrap();
+
+        // check existing copy with bad sig
+        let source = FileLocation::new(bad_path.to_str().unwrap())
+            .sources()
+            .unwrap()
+            .remove(0);
+        check_image_and_sig(&source, &bad_path, &bad_sig_path, VerifyKeys::InsecureTest)
+            .unwrap_err();
+
+        // new copy
+        let mut source = FileLocation::new(good_path.to_str().unwrap())
+            .sources()
+            .unwrap()
+            .remove(0);
+        let out_path = dir.path().join("out");
+        let mut out_file = File::create(&out_path).unwrap();
+        write_image(
+            &mut source,
+            &mut out_file,
+            &out_path,
+            image_copy_default,
+            true,
+            None,
+            None,
+            VerifyKeys::InsecureTest,
+        )
+        .unwrap();
+        assert_eq!(&read(&out_path).unwrap(), decompressed_data);
+
+        // new copy with bad sig
+        let mut source = FileLocation::new(bad_path.to_str().unwrap())
+            .sources()
+            .unwrap()
+            .remove(0);
+        let out_path = dir.path().join("out");
+        let mut out_file = File::create(&out_path).unwrap();
+        write_image(
+            &mut source,
+            &mut out_file,
+            &out_path,
+            image_copy_default,
+            true,
+            None,
+            None,
+            VerifyKeys::InsecureTest,
+        )
+        .unwrap_err();
+    }
+
+    #[test]
+    fn test_should_decompress() {
+        assert_eq!(should_decompress(true, "foo.img"), (false, "foo.img"));
+        assert_eq!(should_decompress(true, "foo.bz2"), (false, "foo.bz2"));
+        assert_eq!(should_decompress(false, "foo.gz"), (false, "foo.gz"));
+        assert_eq!(should_decompress(true, "foo.gz"), (true, "foo"));
+        assert_eq!(should_decompress(true, "foo.tar.gz"), (false, "foo.tar.gz"));
+        assert_eq!(should_decompress(false, "foo.xz"), (false, "foo.xz"));
+        assert_eq!(should_decompress(true, "foo.xz"), (true, "foo"));
+        assert_eq!(should_decompress(true, "foo.tar.xz"), (false, "foo.tar.xz"));
+    }
 
     #[test]
     fn test_write_image_limit() {
@@ -494,6 +665,7 @@ mod tests {
             false,
             Some(&saved),
             None,
+            VerifyKeys::InsecureTest,
         )
         .unwrap_err();
         assert!(

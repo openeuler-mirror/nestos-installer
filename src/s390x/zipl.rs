@@ -14,7 +14,7 @@
 
 // change coreos to nestos
 
-use crate::install::{bls_entry_options_delete_and_append_kargs, visit_bls_entry_options};
+use crate::io::{visit_bls_entry_options, KargsEditor};
 use crate::runcmd;
 use anyhow::{anyhow, Context, Result};
 use regex::Regex;
@@ -77,7 +77,9 @@ pub fn zipl<P: AsRef<Path>>(boot: P) -> Result<()> {
             );
         }
         visit_bls_entry_options(tempdir.path(), |orig_options: &str| {
-            bls_entry_options_delete_and_append_kargs(orig_options, &[], &[], extra.as_slice())
+            KargsEditor::new()
+                .append_if_missing(extra.as_slice())
+                .maybe_apply_to(orig_options)
         })
         .with_context(|| format!("appending {:?}", extra))?;
 
@@ -103,7 +105,7 @@ fn extract_firstboot_kargs(s: &str) -> Result<Option<String>> {
 
     let captures = Regex::new(r#"^set ignition_network_kcmdline="([^\n]*)"$"#)
         .expect("compiling RE")
-        .captures(&s)
+        .captures(s)
         .context("couldn't parse kargs from ignition.firstboot file")?;
     match captures.get(1).expect("kargs").as_str() {
         "" => Ok(None), // this shouldn't really happen, but be nice
