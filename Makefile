@@ -19,7 +19,7 @@ all:
 .PHONY: docs
 docs: all
 	PROFILE=$(PROFILE) docs/_cmd.sh
-	target/${PROFILE}/coreos-installer pack man -C man
+	target/${PROFILE}/nestos-installer pack man -C man
 
 .PHONY: install
 install: install-bin install-man install-scripts install-systemd install-dracut

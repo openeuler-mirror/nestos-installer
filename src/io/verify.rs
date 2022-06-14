@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
+// change coreos to nestos
 use anyhow::{bail, Context, Result};
 use std::fs::{metadata, set_permissions, OpenOptions};
 use std::io::{self, Read, Write};
@@ -99,7 +99,7 @@ impl<R: Read> GpgReader<R> {
     fn new(source: R, signature: &[u8], keys: VerifyKeys) -> Result<Self> {
         // create GPG home directory with restrictive mode
         let gpgdir = tempfile::Builder::new()
-            .prefix("coreos-installer-")
+            .prefix("nestos-installer-")
             .tempdir()
             .context("creating temporary directory")?;
         let meta = metadata(gpgdir.path()).context("getting metadata for temporary directory")?;

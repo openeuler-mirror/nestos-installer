@@ -1,4 +1,5 @@
 #!/bin/bash
+# change coreos to nestos
 set -xeuo pipefail
 PS4='${LINENO}: '
 
@@ -38,50 +39,50 @@ orig_hash=$(digest "${iso}")
 config='{"ignition": {"version": "3.0.0"}'
 
 # Test all the modification operations.
-stdout_hash=$(echo "${config}" | coreos-installer iso ignition embed -o - "${iso}" | tee "${out_iso}" | digest)
-coreos-installer iso ignition show "${out_iso}" | cmp - <(echo "${config}")
+stdout_hash=$(echo "${config}" | nestos-installer iso ignition embed -o - "${iso}" | tee "${out_iso}" | digest)
+nestos-installer iso ignition show "${out_iso}" | cmp - <(echo "${config}")
 rm "${out_iso}"
-coreos-installer iso ignition embed -i <(echo "${config}") "${iso}" -o "${out_iso}"
-coreos-installer iso ignition show "${out_iso}" | cmp - <(echo "${config}")
+nestos-installer iso ignition embed -i <(echo "${config}") "${iso}" -o "${out_iso}"
+nestos-installer iso ignition show "${out_iso}" | cmp - <(echo "${config}")
 hash=$(digest "${out_iso}")
 if [ "${stdout_hash}" != "${hash}" ]; then
     fatal "Streamed hash doesn't match copied hash: ${stdout_hash} vs ${hash}"
 fi
-coreos-installer iso ignition embed -i <(echo "${config}") "${iso}"
-coreos-installer iso ignition show "${iso}" | cmp - <(echo "${config}")
+nestos-installer iso ignition embed -i <(echo "${config}") "${iso}"
+nestos-installer iso ignition show "${iso}" | cmp - <(echo "${config}")
 hash=$(digest "${iso}")
 if [ "${stdout_hash}" != "${hash}" ]; then
     fatal "Streamed hash doesn't match modified hash: ${stdout_hash} vs ${hash}"
 fi
 
 # Check the actual file bits.
-offset=$(coreos-installer dev show iso --ignition "${iso}" | jq -r .offset)
-length=$(coreos-installer dev show iso --ignition "${iso}" | jq -r .length)
+offset=$(nestos-installer dev show iso --ignition "${iso}" | jq -r .offset)
+length=$(nestos-installer dev show iso --ignition "${iso}" | jq -r .length)
 if [ "${config}" != "$(dd if=${iso} skip=${offset} count=${length} bs=1 status=none | xzcat | cpio -i --to-stdout --quiet)" ]; then
     fatal "Failed to manually round-trip Ignition config"
 fi
 
 # Test forcing
-(coreos-installer iso ignition embed -i <(echo "${config}") "${iso}" 2>&1 ||:) | grepq "already has an embedded Ignition config"
-coreos-installer iso ignition embed -f -i <(echo "${config}") "${iso}"
+(nestos-installer iso ignition embed -i <(echo "${config}") "${iso}" 2>&1 ||:) | grepq "already has an embedded Ignition config"
+nestos-installer iso ignition embed -f -i <(echo "${config}") "${iso}"
 rm "${out_iso}"
-(coreos-installer iso ignition embed -i <(echo "${config}") "${iso}" -o "${out_iso}" 2>&1 ||:) | grepq "already has an embedded Ignition config"
-coreos-installer iso ignition embed -f -i <(echo "${config}") "${iso}" -o "${out_iso}"
-(coreos-installer iso ignition embed -i <(echo "${config}") "${iso}" -o - 2>&1 ||:) | grepq "already has an embedded Ignition config"
-coreos-installer iso ignition embed -f -i <(echo "${config}") "${iso}" -o - >/dev/null
+(nestos-installer iso ignition embed -i <(echo "${config}") "${iso}" -o "${out_iso}" 2>&1 ||:) | grepq "already has an embedded Ignition config"
+nestos-installer iso ignition embed -f -i <(echo "${config}") "${iso}" -o "${out_iso}"
+(nestos-installer iso ignition embed -i <(echo "${config}") "${iso}" -o - 2>&1 ||:) | grepq "already has an embedded Ignition config"
+nestos-installer iso ignition embed -f -i <(echo "${config}") "${iso}" -o - >/dev/null
 
 # Test `remove`
-hash=$(coreos-installer iso ignition remove "${iso}" -o - | digest)
+hash=$(nestos-installer iso ignition remove "${iso}" -o - | digest)
 if [ "${orig_hash}" != "${hash}" ]; then
     fatal "Hash doesn't match original hash: ${hash} vs ${orig_hash}"
 fi
 rm "${out_iso}"
-coreos-installer iso ignition remove "${iso}" -o "${out_iso}"
+nestos-installer iso ignition remove "${iso}" -o "${out_iso}"
 hash=$(digest "${out_iso}")
 if [ "${orig_hash}" != "${hash}" ]; then
     fatal "Hash doesn't match original hash: ${hash} vs ${orig_hash}"
 fi
-coreos-installer iso ignition remove "${iso}"
+nestos-installer iso ignition remove "${iso}"
 hash=$(digest "${iso}")
 if [ "${orig_hash}" != "${hash}" ]; then
     fatal "Hash doesn't match original hash: ${hash} vs ${orig_hash}"
@@ -89,7 +90,7 @@ fi
 
 # Test an overlarge Ignition config.  Get some random data from /dev/urandom
 # to ensure it's sufficiently incompressible.
-embed_size=$(coreos-installer dev show iso --ignition "${iso}" | jq .length)
+embed_size=$(nestos-installer dev show iso --ignition "${iso}" | jq .length)
 set +x
 random=$(dd if=/dev/urandom bs=1 count=${embed_size} status=none | base64 -w0)
 set -x
@@ -99,29 +100,29 @@ large_config() {
 {"ignition": {"version": "3.0.0"}, "storage": {"files": [{"path": "/etc/foo", "contents": {"source": "data:,${random}"}}]}}
 EOF
 }
-(large_config | coreos-installer iso ignition embed -o - "${iso}" 2>&1 ||:) | grepq "too large"
+(large_config | nestos-installer iso ignition embed -o - "${iso}" 2>&1 ||:) | grepq "too large"
 rm "${out_iso}"
-(large_config | coreos-installer iso ignition embed -o "${out_iso}" "${iso}" 2>&1 ||:) | grepq "too large"
-(large_config | coreos-installer iso ignition embed "${iso}" 2>&1 ||:) | grepq "too large"
+(large_config | nestos-installer iso ignition embed -o "${out_iso}" "${iso}" 2>&1 ||:) | grepq "too large"
+(large_config | nestos-installer iso ignition embed "${iso}" 2>&1 ||:) | grepq "too large"
 
 # Check that Ignition configs work independently of network configs
 echo "foo=baz" > one.nmconnection
 echo "bar=baz" > two.nmconnection
-if coreos-installer iso network embed -k one.nmconnection -k two.nmconnection "${iso}"; then
-    (coreos-installer iso ignition show "${iso}" 2>&1 ||:) | grepq "No embedded Ignition config"
-    coreos-installer iso ignition embed -i <(echo "${config}") "${iso}" -o "${out_iso}"
-    coreos-installer iso ignition show "${out_iso}" | cmp - <(echo "${config}")
-    coreos-installer iso network extract "${out_iso}" | grepq "foo=baz"
-    coreos-installer iso network extract "${out_iso}" | grepq "bar=baz"
-    coreos-installer iso ignition embed -i <(echo "${config}") "${iso}" -f
-    coreos-installer iso network extract "${out_iso}" | grepq "foo=baz"
+if nestos-installer iso network embed -k one.nmconnection -k two.nmconnection "${iso}"; then
+    (nestos-installer iso ignition show "${iso}" 2>&1 ||:) | grepq "No embedded Ignition config"
+    nestos-installer iso ignition embed -i <(echo "${config}") "${iso}" -o "${out_iso}"
+    nestos-installer iso ignition show "${out_iso}" | cmp - <(echo "${config}")
+    nestos-installer iso network extract "${out_iso}" | grepq "foo=baz"
+    nestos-installer iso network extract "${out_iso}" | grepq "bar=baz"
+    nestos-installer iso ignition embed -i <(echo "${config}") "${iso}" -f
+    nestos-installer iso network extract "${out_iso}" | grepq "foo=baz"
     rm "${out_iso}"
-    coreos-installer iso ignition remove "${iso}" -o "${out_iso}"
-    coreos-installer iso network extract "${out_iso}" | grepq "foo=baz"
-    coreos-installer iso ignition remove "${iso}"
-    coreos-installer iso network extract "${out_iso}" | grepq "foo=baz"
-    (coreos-installer iso ignition show "${iso}" 2>&1 ||:) | grepq "No embedded Ignition config"
-    coreos-installer iso network remove "${iso}"
+    nestos-installer iso ignition remove "${iso}" -o "${out_iso}"
+    nestos-installer iso network extract "${out_iso}" | grepq "foo=baz"
+    nestos-installer iso ignition remove "${iso}"
+    nestos-installer iso network extract "${out_iso}" | grepq "foo=baz"
+    (nestos-installer iso ignition show "${iso}" 2>&1 ||:) | grepq "No embedded Ignition config"
+    nestos-installer iso network remove "${iso}"
     # verify we haven't written an empty cpio archive
     dd if="${iso}" skip="${offset}" count="${length}" bs=1 status=none | cmp -n "${length}" - /dev/zero
     rm "${out_iso}"
@@ -131,14 +132,14 @@ fi
 
 # Clobber the **kargs** header magic and make sure we still succeed
 dd if=/dev/zero of="${iso}" seek=32672 count=8 bs=1 conv=notrunc status=none
-coreos-installer iso ignition embed -i <(echo "${config}") "${iso}" -o "${out_iso}"
-coreos-installer iso ignition embed -i <(echo "${config}") "${iso}" -o - >/dev/null
-coreos-installer iso ignition embed -i <(echo "${config}") "${iso}"
-coreos-installer iso ignition show "${iso}" >/dev/null
-coreos-installer iso ignition remove "${iso}" -o - >/dev/null
+nestos-installer iso ignition embed -i <(echo "${config}") "${iso}" -o "${out_iso}"
+nestos-installer iso ignition embed -i <(echo "${config}") "${iso}" -o - >/dev/null
+nestos-installer iso ignition embed -i <(echo "${config}") "${iso}"
+nestos-installer iso ignition show "${iso}" >/dev/null
+nestos-installer iso ignition remove "${iso}" -o - >/dev/null
 rm "${out_iso}"
-coreos-installer iso ignition remove "${iso}" -o "${out_iso}"
-coreos-installer iso ignition remove "${iso}"
+nestos-installer iso ignition remove "${iso}" -o "${out_iso}"
+nestos-installer iso ignition remove "${iso}"
 
 # Done
 echo "Success."

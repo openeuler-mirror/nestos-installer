@@ -13,6 +13,7 @@
 // limitations under the License.
 
 //! Support for generating man pages.
+// change coreos to nestos
 
 use anyhow::{Context, Result};
 use clap::{crate_version, Command, CommandFactory};
@@ -41,9 +42,9 @@ fn pack_one(config: &PackManConfig, cmd: Command) -> Result<()> {
         .with_context(|| format!("opening {}", path.display()))?;
     let mut buf = BufWriter::with_capacity(BUFFER_SIZE, out);
     clap_mangen::Man::new(cmd.clone())
-        .title("coreos-installer")
+        .title("nestos-installer")
         .section("8")
-        .source(format!("coreos-installer {}", crate_version!()))
+        .source(format!("nestos-installer {}", crate_version!()))
         .render(&mut buf)
         .with_context(|| format!("rendering {}.8", name))?;
     buf.flush().context("flushing man page")?;

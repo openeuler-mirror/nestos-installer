@@ -1,4 +1,5 @@
 #!/bin/bash
+# change coreos to nestos
 set -xeuo pipefail
 PS4='${LINENO}: '
 
@@ -41,38 +42,38 @@ grepq() {
 }
 
 # dev show initrd
-coreos-installer dev show initrd compressed.img > out
+nestos-installer dev show initrd compressed.img > out
 files | diff - out
-coreos-installer dev show initrd - < compressed.img > out
+nestos-installer dev show initrd - < compressed.img > out
 files | diff - out
-coreos-installer dev show initrd compressed.img '*hello' > out
+nestos-installer dev show initrd compressed.img '*hello' > out
 files | grep hello | diff - out
-coreos-installer dev show initrd compressed.img 'gzip/*' > out
+nestos-installer dev show initrd compressed.img 'gzip/*' > out
 files | grep gzip | diff - out
-coreos-installer dev show initrd - 'gzip*' 'xz*' < compressed.img > out
+nestos-installer dev show initrd - 'gzip*' 'xz*' < compressed.img > out
 files | grep -E 'gzip|xz' | diff - out
 
 # dev extract initrd
-coreos-installer dev extract initrd compressed.img
+nestos-installer dev extract initrd compressed.img
 check . gzip uncompressed-1 uncompressed-2 xz
-(coreos-installer dev extract initrd compressed.img 2>&1 ||:) | grepq exists
+(nestos-installer dev extract initrd compressed.img 2>&1 ||:) | grepq exists
 rm -r gzip uncompressed-[12] xz
-coreos-installer dev extract initrd -C d - < compressed.img
+nestos-installer dev extract initrd -C d - < compressed.img
 check d gzip uncompressed-1 uncompressed-2 xz
 rm -r d
-coreos-installer dev extract initrd -C d -v compressed.img > out
+nestos-installer dev extract initrd -C d -v compressed.img > out
 files | sed s:^:d/: | diff - out
 check d gzip uncompressed-1 uncompressed-2 xz
 rm -r d
-coreos-installer dev extract initrd -C d -v compressed.img 'gzip/*' 'xz/*' > out
+nestos-installer dev extract initrd -C d -v compressed.img 'gzip/*' 'xz/*' > out
 files | sed s:^:d/: | grep -E 'gzip|xz' | diff - out
 check d gzip xz
 [ -e d/uncompressed-1 ] && exit 1
 [ -e d/uncompressed-2 ] && exit 1
 rm -r d
-(coreos-installer dev extract initrd \
+(nestos-installer dev extract initrd \
     "${fixtures}/initrd/traversal-absolute.img" 2>&1 ||:) | grepq traversal
-(coreos-installer dev extract initrd \
+(nestos-installer dev extract initrd \
     "${fixtures}/initrd/traversal-relative.img" 2>&1 ||:) | grepq traversal
 
 # Done

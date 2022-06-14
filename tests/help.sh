@@ -1,6 +1,6 @@
 #!/bin/bash
 # Check help text maximum line length
-
+# change coreos to nestos
 set -euo pipefail
 
 rootdir="$(dirname $0)/.."

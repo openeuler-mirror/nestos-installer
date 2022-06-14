@@ -7,7 +7,7 @@ systemd:
       contents: |
         [Unit]
         Description=Live-2 Ignition Applied
-        Before=coreos-installer.target
+        Before=nestos-installer.target
         Before=multi-user.target
 
         [Service]
@@ -17,5 +17,5 @@ systemd:
         StandardOutput=tty
 
         [Install]
-        RequiredBy=coreos-installer.target
+        RequiredBy=nestos-installer.target
         RequiredBy=multi-user.target

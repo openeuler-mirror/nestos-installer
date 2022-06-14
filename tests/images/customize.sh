@@ -1,4 +1,6 @@
 #!/bin/bash
+
+# change coreos to nestos
 set -xeuo pipefail
 PS4='${LINENO}: '
 
@@ -90,12 +92,12 @@ done
 
 iso_customize() {
     rm -f iso
-    coreos-installer iso customize src-iso -o iso "${opts_iso[@]}" "$@"
+    nestos-installer iso customize src-iso -o iso "${opts_iso[@]}" "$@"
 }
 
 pxe_customize() {
     rm -f initrd
-    coreos-installer pxe customize src-initrd -o initrd "$@"
+    nestos-installer pxe customize src-initrd -o initrd "$@"
 }
 
 qemu_common() {
@@ -104,7 +106,7 @@ qemu_common() {
         -m 4096 \
         -accel kvm \
         -object rng-random,filename=/dev/urandom,id=rng0 \
-        -netdev user,id=eth0,hostname="fcos",tftp=.,bootfile=ipxe \
+        -netdev user,id=eth0,hostname="nestos",tftp=.,bootfile=ipxe \
         -device virtio-net-pci,netdev=eth0 \
         -nographic \
         -no-reboot \
@@ -149,7 +151,7 @@ check_live_noinstall() {
     ! assert @preinst-2@
     ! assert @postinst-1@
     ! assert @postinst-2@
-    assert 'Adding "coreos-installer test certificate" to list of CAs'
+    assert 'Adding "nestos-installer test certificate" to list of CAs'
 }
 
 check_live_install() {
@@ -162,7 +164,7 @@ check_live_install() {
     assert @preinst-2@
     assert @postinst-1@
     assert @postinst-2@
-    assert 'Adding "coreos-installer test certificate" to list of CAs'
+    assert 'Adding "nestos-installer test certificate" to list of CAs'
 }
 
 check_dest() {
@@ -174,54 +176,54 @@ check_dest() {
     ! assert @preinst-2@
     ! assert @postinst-1@
     ! assert @postinst-2@
-    assert 'Adding "coreos-installer test certificate" to list of CAs'
+    assert 'Adding "nestos-installer test certificate" to list of CAs'
 }
 
 # Check equivalence of ISO outputs
-coreos-installer iso customize src-iso -o iso \
+nestos-installer iso customize src-iso -o iso \
     "${opts_common[@]}" "${opts_install[@]}"
 expected=$(digest iso)
 cp --dereference --reflink=auto src-iso inplace-iso
-coreos-installer iso customize inplace-iso \
+nestos-installer iso customize inplace-iso \
     "${opts_common[@]}" "${opts_install[@]}"
 [ "${expected}" = "$(digest inplace-iso)" ]
 rm inplace-iso
-found=$(coreos-installer iso customize src-iso -o - \
+found=$(nestos-installer iso customize src-iso -o - \
     "${opts_common[@]}" "${opts_install[@]}" | digest)
 [ "${expected}" = "${found}" ]
 
 # Check ISO error conditions
-(coreos-installer iso customize src-iso -o iso \
+(nestos-installer iso customize src-iso -o iso \
     "${opts_common[@]}" "${opts_install[@]}" 2>&1 ||:) |
     grepq "File exists"
-(coreos-installer iso customize iso \
+(nestos-installer iso customize iso \
     "${opts_common[@]}" "${opts_install[@]}" 2>&1 ||:) |
     grepq "already customized"
-(coreos-installer iso customize iso -o iso2 \
+(nestos-installer iso customize iso -o iso2 \
     "${opts_common[@]}" "${opts_install[@]}" 2>&1 ||:) |
     grepq "already customized"
 rm iso
 xz -dc "${rootdir}/fixtures/iso/embed-areas-2021-09.iso.xz" > old.iso
-(coreos-installer iso customize old.iso \
+(nestos-installer iso customize old.iso \
     --network-keyfile "${fixtures}/installer-test.nmconnection" 2>&1 ||:) |
     grepq "does not support customizing network settings"
-(coreos-installer iso customize old.iso --dest-device /dev/loop0 2>&1 ||:) |
+(nestos-installer iso customize old.iso --dest-device /dev/loop0 2>&1 ||:) |
     grepq "does not support customizing installer configuration"
-coreos-installer iso customize old.iso \
+nestos-installer iso customize old.iso \
     --pre-install "${fixtures}/pre-install-1" \
     --live-karg-append "foo"
 xz -dc "${rootdir}/fixtures/iso/embed-areas-2020-09.iso.xz" > old.iso
-(coreos-installer iso customize old.iso \
+(nestos-installer iso customize old.iso \
     --live-karg-append "foo" 2>&1 ||:) |
     grepq "does not support customizing live kernel arguments"
-coreos-installer iso customize old.iso \
+nestos-installer iso customize old.iso \
     --pre-install "${fixtures}/pre-install-1"
 xz -dc "${rootdir}/fixtures/iso/synthetic.iso.xz" > old.iso
-(coreos-installer iso customize old.iso \
+(nestos-installer iso customize old.iso \
     --pre-install "${fixtures}/pre-install-1" 2>&1 ||:) |
-    grepq "Unrecognized CoreOS ISO image"
+    grepq "Unrecognized nestos ISO image"
 # no-op
-coreos-installer iso customize src-iso -o iso
+nestos-installer iso customize src-iso -o iso
 
 # Check PXE initrd concatenation
 pxe_customize "${opts_common[@]}" "${opts_install[@]}"
@@ -233,28 +235,28 @@ cmp -n "${orig_size}" src-initrd initrd
 rm initrd
 
 # Check equivalence of PXE outputs
-coreos-installer pxe customize src-initrd -o initrd \
+nestos-installer pxe customize src-initrd -o initrd \
     "${opts_common[@]}" "${opts_install[@]}"
 expected=$(digest initrd)
-found=$(coreos-installer pxe customize src-initrd -o - \
+found=$(nestos-installer pxe customize src-initrd -o - \
     "${opts_common[@]}" "${opts_install[@]}" | digest)
 [ "${expected}" = "${found}" ]
 
 # Check PXE error conditions
 # don't re-test feature flags here, since the comprehensive tests would fail
 # if flags weren't being read correctly
-(coreos-installer pxe customize src-initrd -o initrd \
+(nestos-installer pxe customize src-initrd -o initrd \
     "${opts_common[@]}" "${opts_install[@]}" 2>&1 ||:) |
     grepq "File exists"
-(coreos-installer pxe customize initrd -o initrd2 \
+(nestos-installer pxe customize initrd -o initrd2 \
     "${opts_common[@]}" "${opts_install[@]}" 2>&1 ||:) |
     grepq "already customized"
 rm initrd
-coreos-installer pxe ignition wrap -i /dev/null > empty-initrd
-(coreos-installer pxe customize empty-initrd -o initrd 2>&1 ||:) |
-    grepq "not a CoreOS live initramfs image"
+nestos-installer pxe ignition wrap -i /dev/null > empty-initrd
+(nestos-installer pxe customize empty-initrd -o initrd 2>&1 ||:) |
+    grepq "not a nestos live initramfs image"
 # no-op
-coreos-installer pxe customize src-initrd -o initrd
+nestos-installer pxe customize src-initrd -o initrd
 
 # Check arg restrictions
 (iso_customize \
@@ -276,15 +278,15 @@ coreos-installer pxe customize src-initrd -o initrd
     grepq "parsing installer config"
 
 # Test live kargs by reading them back out of the ISO
-coreos-installer iso kargs show src-iso | grepq ignition.platform.id=metal
+nestos-installer iso kargs show src-iso | grepq ignition.platform.id=metal
 iso_customize \
     --live-karg-append foo \
     --live-karg-replace ignition.platform.id=metal=bar
-coreos-installer iso kargs show iso | grepq ignition.platform.id=bar
-coreos-installer iso kargs show iso | grepq foo
+nestos-installer iso kargs show iso | grepq ignition.platform.id=bar
+nestos-installer iso kargs show iso | grepq foo
 iso_customize \
     --live-karg-delete ignition.platform.id=metal
-! coreos-installer iso kargs show iso | grepq ignition.platform.id
+! nestos-installer iso kargs show iso | grepq ignition.platform.id
 
 # Runtime tests
 echo "=== ISO without install ==="

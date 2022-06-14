@@ -9,7 +9,7 @@ nav_order: 3
 List available images in a NestOS stream
 
 USAGE:
-    coreos-installer list-stream [OPTIONS]
+    nestos-installer list-stream [OPTIONS]
 
 OPTIONS:
     -s, --stream <name>            NestOS stream [default: stable]

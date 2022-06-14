@@ -15,7 +15,7 @@ sign-tag = true
 push = false
 publish = false
 pre-release-commit-message = "cargo: nestos-installer release {{version}}"
-tag-message = "coreos-installer v{{version}}"
+tag-message = "nestos-installer v{{version}}"
 
 [features]
 # rdcore is only useful inside the initrd of a NestOS system

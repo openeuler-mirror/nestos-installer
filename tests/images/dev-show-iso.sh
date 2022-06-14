@@ -1,4 +1,5 @@
 #!/bin/bash
+# change coreos to nestos
 set -xeuo pipefail
 PS4='${LINENO}: '
 
@@ -14,7 +15,7 @@ tmpd=$(mktemp -d)
 trap 'rm -rf "${tmpd}"' EXIT
 cd "${tmpd}"
 
-coreos-installer dev show iso "${iso}" | tee inspect.json
+nestos-installer dev show iso "${iso}" | tee inspect.json
 
 # check that we found the descriptors
 jq -e '.header.descriptors|length > 0' inspect.json
@@ -28,7 +29,7 @@ jq -e '.records|length > 0' inspect.json
 
 # check that various fields are what we expect
 jq -e '.header.descriptors[]|select(.type == "primary")|.system_id|contains("LINUX")' inspect.json
-jq -e '.header.descriptors[]|select(.type == "primary")|.volume_id|contains("fedora-coreos")' inspect.json
+jq -e '.header.descriptors[]|select(.type == "primary")|.volume_id|contains("nestos")' inspect.json
 jq -e '.header.descriptors[]|select(.type == "boot")|.boot_system_id|contains("EL TORITO")' inspect.json
 
 # check that it found some various files and directories at various depths

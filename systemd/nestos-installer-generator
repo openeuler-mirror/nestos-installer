@@ -29,8 +29,8 @@ karg_bool() {
     esac
 }
 
-if [ -n "$(karg coreos.inst.install_dev)" -o \
-     -n "$(ls -A /etc/coreos/installer.d 2>/dev/null)" ]; then
+if [ -n "$(karg nestos.inst.install_dev)" -o \
+     -n "$(ls -A /etc/nestos/installer.d 2>/dev/null)" ]; then
     ln -sf "/usr/lib/systemd/system/nestos-installer-post.target" \
         "${UNIT_DIR}/default.target"
 

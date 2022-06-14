@@ -14,6 +14,7 @@
 
 //! ISO embed area support
 
+// change coreos to nestos
 use anyhow::{bail, Context, Result};
 use bytes::Buf;
 use lazy_static::lazy_static;
@@ -26,7 +27,7 @@ use crate::io::*;
 use crate::iso9660::{self, IsoFs};
 
 pub(super) const INITRD_IGNITION_PATH: &str = "config.ign";
-pub(super) const INITRD_NETWORK_DIR: &str = "etc/coreos-firstboot-network";
+pub(super) const INITRD_NETWORK_DIR: &str = "etc/nestos-firstboot-network";
 
 lazy_static! {
     pub(super) static ref INITRD_IGNITION_GLOB: GlobMatcher =
@@ -57,7 +58,7 @@ impl IsoConfig {
 
     pub fn for_iso(iso: &mut IsoFs) -> Result<Self> {
         Ok(Self {
-            initrd: InitrdEmbedArea::for_iso(iso).context("Unrecognized CoreOS ISO image.")?,
+            initrd: InitrdEmbedArea::for_iso(iso).context("Unrecognized NestOS ISO image.")?,
             kargs: KargEmbedAreas::for_iso(iso)?,
         })
     }
@@ -125,13 +126,13 @@ impl IsoConfig {
     fn unwrap_kargs(&self) -> Result<&KargEmbedAreas> {
         self.kargs
             .as_ref()
-            .context("No karg embed areas found; old or corrupted CoreOS ISO image.")
+            .context("No karg embed areas found; old or corrupted NestOS ISO image.")
     }
 
     fn unwrap_kargs_mut(&mut self) -> Result<&mut KargEmbedAreas> {
         self.kargs
             .as_mut()
-            .context("No karg embed areas found; old or corrupted CoreOS ISO image.")
+            .context("No karg embed areas found; old or corrupted NestOS ISO image.")
     }
 
     pub fn write(&self, file: &mut File) -> Result<()> {
@@ -425,7 +426,7 @@ impl KargEmbedAreas {
     fn build(length: usize, default: String, regions: Vec<Region>) -> Result<Self> {
         // we expect at least one region
         if regions.is_empty() {
-            bail!("No karg embed areas found; corrupted CoreOS ISO image.");
+            bail!("No karg embed areas found; corrupted NestOS ISO image.");
         }
 
         // parse kargs and verify that all the offsets have the same arguments
@@ -631,7 +632,7 @@ mod tests {
         let mut iso = IsoFs::from_file(iso_file).unwrap();
         let areas = KargEmbedAreas::for_iso(&mut iso).unwrap().unwrap();
         assert_eq!(areas.length, 1139);
-        assert_eq!(areas.default, "mitigations=auto,nosmt coreos.liveiso=fedora-coreos-34.20210921.dev.0 ignition.firstboot ignition.platform.id=metal");
+        assert_eq!(areas.default, "mitigations=auto,nosmt nestos.liveiso=nestos-22.03.20220329.dev.0 ignition.firstboot ignition.platform.id=metal");
         assert_eq!(areas.regions.len(), 2);
         assert_eq!(areas.regions[0].offset, 98126);
         assert_eq!(areas.regions[0].length, 1139);

@@ -7,7 +7,7 @@ systemd:
       contents: |
         [Unit]
         Description=Live Ignition Applied
-        Before=coreos-installer.target
+        Before=nestos-installer.target
         Before=multi-user.target
         ConditionPathExists=/etc/NetworkManager/system-connections/installer-test.nmconnection
 
@@ -18,7 +18,7 @@ systemd:
         StandardOutput=tty
 
         [Install]
-        RequiredBy=coreos-installer.target
+        RequiredBy=nestos-installer.target
         RequiredBy=multi-user.target
     - name: terminate-multi-user.service
       enabled: true

@@ -13,6 +13,8 @@
 // limitations under the License.
 
 // We don't care about the size of enum variants and don't want to box them
+
+// change coreos to nestos
 #![allow(clippy::large_enum_variant)]
 
 use clap::{AppSettings, Parser};
@@ -560,7 +562,7 @@ pub struct IsoResetConfig {
 
 #[derive(Debug, Parser)]
 // default usage line lists all mandatory options and so exceeds 80 characters
-#[clap(override_usage = "coreos-installer pack osmet [OPTIONS]")]
+#[clap(override_usage = "nestos-installer pack osmet [OPTIONS]")]
 pub struct PackOsmetConfig {
     /// Path to osmet file to write
     // could output to stdout if missing?

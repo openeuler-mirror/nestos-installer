@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// change coreos to nestos
+
 use anyhow::{bail, Context, Result};
 use lazy_static::lazy_static;
 use serde::Serialize;
@@ -34,7 +36,7 @@ use self::customize::*;
 use self::embed::*;
 use self::util::*;
 
-const INITRD_LIVE_STAMP_PATH: &str = "etc/coreos-live-initramfs";
+const INITRD_LIVE_STAMP_PATH: &str = "etc/nestos-live-initramfs";
 const COREOS_ISO_PXEBOOT_DIR: &str = "IMAGES/PXEBOOT";
 const COREOS_ISO_ROOTFS_IMG: &str = "IMAGES/PXEBOOT/ROOTFS.IMG";
 const COREOS_ISO_MINISO_FILE: &str = "COREOS/MINISO.DAT";
@@ -391,7 +393,7 @@ pub fn pxe_customize(config: PxeCustomizeConfig) -> Result<()> {
                 .parent()
                 .with_context(|| format!("no parent directory of {}", path))?;
             let tempfile = tempfile::Builder::new()
-                .prefix(".coreos-installer-temp-")
+                .prefix(".nestos-installer-temp-")
                 .tempfile_in(dir)
                 .context("creating temporary file")?;
             Some(tempfile)
@@ -418,7 +420,7 @@ pub fn pxe_customize(config: PxeCustomizeConfig) -> Result<()> {
         .context("reading/copying input initrd")?,
     };
     if base_initrd.get(INITRD_LIVE_STAMP_PATH).is_none() {
-        bail!("not a CoreOS live initramfs image");
+        bail!("not a NestOS live initramfs image");
     }
     if base_initrd.get(INITRD_IGNITION_PATH).is_some()
         || !base_initrd.find(&INITRD_NETWORK_GLOB).is_empty()
@@ -554,7 +556,7 @@ pub fn iso_extract_pxe(config: IsoExtractPxeConfig) -> Result<()> {
     let mut iso = IsoFs::from_file(open_live_iso(&config.input, None)?)?;
     let pxeboot = iso
         .get_path(COREOS_ISO_PXEBOOT_DIR)
-        .context("Unrecognized CoreOS ISO image.")?
+        .context("Unrecognized NestOS ISO image.")?
         .try_into_dir()?;
     create_dir_all(&config.output_dir)?;
 
@@ -592,7 +594,7 @@ pub fn iso_extract_minimal_iso(config: IsoExtractMinimalIsoConfig) -> Result<()>
     // match.
     let iso = IsoConfig::for_iso(&mut full_iso)?;
     if !iso.initrd().is_empty() || iso.kargs()? != iso.kargs_default()? {
-        bail!("Cannot operate on ISO with embedded customizations.\nReset it with `coreos-installer iso reset` and try again.");
+        bail!("Cannot operate on ISO with embedded customizations.\nReset it with `nestos-installer iso reset` and try again.");
     }
 
     // do this early so we exit immediately if stdout is a TTY
@@ -629,7 +631,7 @@ pub fn iso_extract_minimal_iso(config: IsoExtractMinimalIsoConfig) -> Result<()>
         miniso::Data::deserialize(&mut f).context("reading miniso data file")?
     };
     let mut outf = tempfile::Builder::new()
-        .prefix(".coreos-installer-temp-")
+        .prefix(".nestos-installer-temp-")
         .tempfile_in(&output_dir)
         .context("creating temporary file")?;
     data.unxzpack(full_iso.as_file()?, &mut outf)
@@ -715,8 +717,8 @@ fn modify_miniso_kargs(f: &mut File, rootfs_url: Option<&String>) -> Result<()> 
     // same disclaimer as `modify_kargs()` here re. whitespace/quoting
     let liveiso_karg = kargs
         .split_ascii_whitespace()
-        .find(|&karg| karg.starts_with("coreos.liveiso="))
-        .context("minimal ISO does not have coreos.liveiso= karg")?
+        .find(|&karg| karg.starts_with("nestos.liveiso="))
+        .context("minimal ISO does not have nestos.liveiso= karg")?
         .to_string();
 
     let new_default_kargs = KargsEditor::new().delete(&[liveiso_karg]).apply_to(kargs)?;
@@ -727,7 +729,7 @@ fn modify_miniso_kargs(f: &mut File, rootfs_url: Option<&String>) -> Result<()> 
             bail!("forbidden whitespace found in '{}'", url);
         }
         let final_kargs = KargsEditor::new()
-            .append(&[format!("coreos.live.rootfs_url={}", url)])
+            .append(&[format!("nestos.live.rootfs_url={}", url)])
             .apply_to(&new_default_kargs)?;
 
         cfg.set_kargs(&final_kargs)?;
