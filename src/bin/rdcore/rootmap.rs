@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+// change coreos to nestos
 
 use anyhow::{bail, Context, Result};
 use nix::mount;
@@ -243,7 +244,7 @@ pub fn bind_boot(config: BindBootConfig) -> Result<()> {
     // put it in /run also for the first boot real root mount
     // https://github.com/coreos/fedora-coreos-config/blob/8661649009/overlay.d/05core/usr/lib/systemd/system-generators/coreos-boot-mount-generator#L105-L108
     if changed {
-        let boot_uuid_run = Path::new("/run/coreos/bootfs_uuid");
+        let boot_uuid_run = Path::new("/run/nestos/bootfs_uuid");
         let parent = boot_uuid_run.parent().unwrap();
         std::fs::create_dir_all(parent)
             .with_context(|| format!("creating {}", parent.display()))?;

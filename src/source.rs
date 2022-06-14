@@ -260,7 +260,7 @@ impl Display for StreamLocation {
         } else {
             write!(
                 f,
-                "Downloading Fedora CoreOS {} {} {} image ({}) and signature",
+                "Downloading NestOS {} {} {} image ({}) and signature",
                 self.stream, self.architecture, self.platform, self.format
             )
         }

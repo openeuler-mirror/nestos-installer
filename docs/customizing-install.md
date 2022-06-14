@@ -75,7 +75,7 @@ Available customizations include:
   might use IPMI to configure the machine to boot from the local disk
   instead of the network.  Pre-install scripts can change the options
   processed by nestos-installer, including the choice of destination device,
-  by writing an installer config file to `/etc/coreos/installer.d` (see
+  by writing an installer config file to `/etc/nestos/installer.d` (see
   below).
 - Specifying arbitrary options to `nestos-installer install` via an
   installer config file (see below).
@@ -91,7 +91,7 @@ or a config file.
 [Kernel arguments](getting-started.md#kernel-command-line-options-for-nestos-installer-running-as-a-service)
 are easier for simple cases, but not all nestos-installer parameters can be
 specified that way.  For more complex cases, you can write one or more
-config files to `/etc/coreos/installer.d`.  If any files exist in this
+config files to `/etc/nestos/installer.d`.  If any files exist in this
 directory, nestos-installer will automatically run on boot, and will reboot
 the live system after installation is complete.
 
@@ -100,12 +100,12 @@ installer.  This config is distinct from the Ignition config that governs
 the installed system.
 
 All config files in the `installer.d` directory are evaluated in
-alphabetical order, and any `coreos.inst` kernel command line arguments are
+alphabetical order, and any `nestos.inst` kernel command line arguments are
 evaluated afterward.
 
 ### Config file format
 
-Config files in `/etc/coreos/installer.d` (or specified by `--config-file`)
+Config files in `/etc/nestos/installer.d` (or specified by `--config-file`)
 are [YAML](https://yaml.org/) documents containing directives with the same
 names and semantics as command-line arguments.  Each specified config file
 is parsed in order, and other command-line arguments are parsed afterward.
@@ -172,7 +172,7 @@ variant: fcos
 version: 1.4.0
 storage:
   files:
-    - path: /etc/coreos/installer.d/custom.yaml
+    - path: /etc/nestos/installer.d/custom.yaml
       contents:
         inline: |
           dest-device: /dev/zda

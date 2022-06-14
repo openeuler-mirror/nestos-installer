@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// change coreos to nestos
 use anyhow::{bail, Context, Result};
 use nix::unistd::isatty;
 use std::fs::{write, File, OpenOptions};
@@ -57,7 +58,7 @@ pub(super) fn write_live_iso(
                 .parent()
                 .with_context(|| format!("no parent directory of {}", output_path))?;
             let mut output = tempfile::Builder::new()
-                .prefix(".coreos-installer-temp-")
+                .prefix(".nestos-installer-temp-")
                 .tempfile_in(output_dir)
                 .context("creating temporary file")?;
             input.seek(SeekFrom::Start(0)).context("seeking input")?;

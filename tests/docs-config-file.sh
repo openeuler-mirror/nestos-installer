@@ -1,11 +1,11 @@
 #!/bin/bash
 # Check that every `install` subcommand long option is documented as a
 # config file field
-
+# change coreos to nestos
 set -euo pipefail
 
 rootdir="$(dirname $0)/.."
-prog="${rootdir}/target/debug/coreos-installer"
+prog="${rootdir}/target/debug/nestos-installer"
 
 echo "Checking config file docs..."
 

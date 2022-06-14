@@ -1,4 +1,5 @@
 #!/bin/bash
+# change coreos to nestos
 set -xeuo pipefail
 PS4='${LINENO}: '
 
@@ -18,7 +19,7 @@ for f in "${unpack[@]}"; do
 done
 
 try() {
-    (coreos-installer "$@" 2>&1 ||:)
+    (nestos-installer "$@" 2>&1 ||:)
 }
 
 grepq() {
@@ -33,7 +34,7 @@ grepq() {
 # no Ignition embed area
 echo '{"ignition": {"version": "3.0.0"}' |
     try iso ignition embed synthetic.iso |
-    grepq "Unrecognized CoreOS ISO image"
+    grepq "Unrecognized nestos ISO image"
 
 # no kargs embed area
 try iso kargs modify -a foobar embed-areas-2020-09.iso |
@@ -64,7 +65,7 @@ try iso extract minimal-iso embed-areas-2021-09.iso minimal.iso |
 
 # no PXE images
 try iso extract pxe synthetic.iso |
-    grepq "Unrecognized CoreOS ISO image"
+    grepq "Unrecognized nestos ISO image"
 
 # Done
 echo "Success."

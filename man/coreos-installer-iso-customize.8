@@ -1,12 +1,12 @@
 .ie \n(.g .ds Aq \(aq
 .el .ds Aq '
-.TH coreos-installer 8  "coreos-installer 0.13.1" 
+.TH nestos-installer 8  "nestos-installer 0.13.1" 
 .SH NAME
-coreos\-installer\-iso\-customize \- Customize a CoreOS live ISO image
+nestos\-installer\-iso\-customize \- Customize a nestos live ISO image
 .SH SYNOPSIS
-\fBcoreos\-installer\-iso\-customize\fR [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fB\-\-dest\-ignition\fR] [\fB\-\-dest\-device\fR] [\fB\-\-dest\-karg\-append\fR] [\fB\-\-dest\-karg\-delete\fR] [\fB\-\-network\-keyfile\fR] [\fB\-\-ignition\-ca\fR] [\fB\-\-pre\-install\fR] [\fB\-\-post\-install\fR] [\fB\-\-installer\-config\fR] [\fB\-\-live\-ignition\fR] [\fB\-\-live\-karg\-append\fR] [\fB\-\-live\-karg\-delete\fR] [\fB\-\-live\-karg\-replace\fR] [\fB\-f\fR|\fB\-\-force\fR] [\fB\-o\fR|\fB\-\-output\fR] <\fIISO\fR> 
+\fBnestos\-installer\-iso\-customize\fR [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fB\-\-dest\-ignition\fR] [\fB\-\-dest\-device\fR] [\fB\-\-dest\-karg\-append\fR] [\fB\-\-dest\-karg\-delete\fR] [\fB\-\-network\-keyfile\fR] [\fB\-\-ignition\-ca\fR] [\fB\-\-pre\-install\fR] [\fB\-\-post\-install\fR] [\fB\-\-installer\-config\fR] [\fB\-\-live\-ignition\fR] [\fB\-\-live\-karg\-append\fR] [\fB\-\-live\-karg\-delete\fR] [\fB\-\-live\-karg\-replace\fR] [\fB\-f\fR|\fB\-\-force\fR] [\fB\-o\fR|\fB\-\-output\fR] <\fIISO\fR> 
 .SH DESCRIPTION
-Customize a CoreOS live ISO image
+Customize a nestos live ISO image
 .SH OPTIONS
 .TP
 \fB\-h\fR, \fB\-\-help\fR
@@ -58,7 +58,7 @@ If installer is run at boot, run this script after installation. If the script f
 \fB\-\-installer\-config\fR=\fIpath\fR
 Installer config file
 
-Automatically run coreos\-installer and apply the specified installer config file.  Config files are applied in the order that they are specified.
+Automatically run nestos\-installer and apply the specified installer config file.  Config files are applied in the order that they are specified.
 .TP
 \fB\-\-live\-ignition\fR=\fIpath\fR
 Ignition config fragment for live env

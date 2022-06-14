@@ -1,12 +1,12 @@
 .ie \n(.g .ds Aq \(aq
 .el .ds Aq '
-.TH coreos-installer 8  "coreos-installer 0.13.1" 
+.TH nestos-installer 8  "nestos-installer 0.13.1" 
 .SH NAME
-coreos\-installer\-install \- Install Fedora CoreOS or RHEL CoreOS
+nestos\-installer\-install \- Install nestos
 .SH SYNOPSIS
-\fBcoreos\-installer\-install\fR [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fB\-c\fR|\fB\-\-config\-file\fR] [\fB\-s\fR|\fB\-\-stream\fR] [\fB\-u\fR|\fB\-\-image\-url\fR] [\fB\-f\fR|\fB\-\-image\-file\fR] [\fB\-i\fR|\fB\-\-ignition\-file\fR] [\fB\-I\fR|\fB\-\-ignition\-url\fR] [\fB\-\-ignition\-hash\fR] [\fB\-a\fR|\fB\-\-architecture\fR] [\fB\-p\fR|\fB\-\-platform\fR] [\fB\-\-append\-karg\fR] [\fB\-\-delete\-karg\fR] [\fB\-n\fR|\fB\-\-copy\-network\fR] [\fB\-\-network\-dir\fR] [\fB\-\-save\-partlabel\fR] [\fB\-\-save\-partindex\fR] [\fB\-\-offline\fR] [\fB\-\-insecure\fR] [\fB\-\-insecure\-ignition\fR] [\fB\-\-stream\-base\-url\fR] [\fB\-\-preserve\-on\-error\fR] [\fB\-\-fetch\-retries\fR] [\fIDEST_DEVICE\fR] 
+\fBnestos\-installer\-install\fR [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fB\-c\fR|\fB\-\-config\-file\fR] [\fB\-s\fR|\fB\-\-stream\fR] [\fB\-u\fR|\fB\-\-image\-url\fR] [\fB\-f\fR|\fB\-\-image\-file\fR] [\fB\-i\fR|\fB\-\-ignition\-file\fR] [\fB\-I\fR|\fB\-\-ignition\-url\fR] [\fB\-\-ignition\-hash\fR] [\fB\-a\fR|\fB\-\-architecture\fR] [\fB\-p\fR|\fB\-\-platform\fR] [\fB\-\-append\-karg\fR] [\fB\-\-delete\-karg\fR] [\fB\-n\fR|\fB\-\-copy\-network\fR] [\fB\-\-network\-dir\fR] [\fB\-\-save\-partlabel\fR] [\fB\-\-save\-partindex\fR] [\fB\-\-offline\fR] [\fB\-\-insecure\fR] [\fB\-\-insecure\-ignition\fR] [\fB\-\-stream\-base\-url\fR] [\fB\-\-preserve\-on\-error\fR] [\fB\-\-fetch\-retries\fR] [\fIDEST_DEVICE\fR] 
 .SH DESCRIPTION
-Install Fedora CoreOS or RHEL CoreOS
+Install nestos
 .SH OPTIONS
 .TP
 \fB\-h\fR, \fB\-\-help\fR
@@ -23,9 +23,9 @@ Load additional config options from the specified YAML config file. Later config
 Config file keys are long option names without the leading "\-\-". Values are strings for non\-repeatable options, arrays of strings for repeatable options, and "true" for flags.  The destination device can be specified with the "dest\-device" key.
 .TP
 \fB\-s\fR, \fB\-\-stream\fR=\fIname\fR
-Fedora CoreOS stream
+nestos stream
 
-The name of the Fedora CoreOS stream to install, such as "stable", "testing", or "next".
+The name of the nestos  stream to install, such as "stable", "testing", or "next".
 .TP
 \fB\-u\fR, \fB\-\-image\-url\fR=\fIURL\fR
 Manually specify the image URL
@@ -94,14 +94,14 @@ Skip signature verification
 Allow Ignition URL without HTTPS or hash
 .TP
 \fB\-\-stream\-base\-url\fR=\fIURL\fR
-Base URL for CoreOS stream metadata
+Base URL for nestos stream metadata
 
-Override the base URL for fetching CoreOS stream metadata. The default is "https://builds.coreos.fedoraproject.org/streams/".
+Override the base URL for fetching nestos stream metadata. The default is "https://builds.coreos.fedoraproject.org/streams/".
 .TP
 \fB\-\-preserve\-on\-error\fR
 Don\*(Aqt clear partition table on error
 
-If installation fails, coreos\-installer normally clears the destination\*(Aqs partition table to prevent booting from invalid boot media.  Skip clearing the partition table as a debugging aid.
+If installation fails, nestos\-installer normally clears the destination\*(Aqs partition table to prevent booting from invalid boot media.  Skip clearing the partition table as a debugging aid.
 .TP
 \fB\-\-fetch\-retries\fR=\fIN\fR [default: 0]
 Fetch retries, or "infinite"

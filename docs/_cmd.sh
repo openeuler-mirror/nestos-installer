@@ -4,7 +4,7 @@
 set -euo pipefail
 
 rootdir="$(dirname $0)/.."
-prog="${rootdir}/target/${PROFILE:-debug}/coreos-installer"
+prog="${rootdir}/target/${PROFILE:-debug}/nestos-installer"
 
 generate() {
     local subcommand subcommands
@@ -14,7 +14,7 @@ generate() {
     if [ -n "${subcommands}" -a $# = 1 ]; then
         cat <<EOF
 
-# coreos-installer $*
+# nestos-installer $*
 {: .no_toc }
 
 1. TOC
@@ -26,7 +26,7 @@ EOF
     if [ -z "${subcommands}" ]; then
         cat <<EOF
 
-# coreos-installer $*
+# nestos-installer $*
 
 \`\`\`
 EOF

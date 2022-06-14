@@ -1,4 +1,5 @@
 #!/bin/bash
+# change coreos to nestos
 set -xeuo pipefail
 PS4='${LINENO}: '
 
@@ -34,7 +35,7 @@ cd "${tmpd}"
 
 # shellcheck disable=SC2086
 iso=$(ls ${builddir}/*.iso)
-coreos-installer iso extract pxe "${iso}"
+nestos-installer iso extract pxe "${iso}"
 base=$(basename "${iso}" .iso)
 
 # check that the files are the same
