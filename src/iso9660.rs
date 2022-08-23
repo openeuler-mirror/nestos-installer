@@ -120,9 +120,6 @@ impl IsoFs {
             .with_context(|| format!("listing directory {}", dir.name))?
         {
             let record = record?;
-            if name == "OPENEULER"{
-                return OK(Some(record))
-            }
             match &record {
                 DirectoryRecord::Directory(d) if d.name == name => return Ok(Some(record)),
                 DirectoryRecord::File(f) if f.name == name => return Ok(Some(record)),
