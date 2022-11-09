@@ -1,5 +1,5 @@
 #update for nestos later
-FROM registry.fedoraproject.org/fedora:35 AS builder
+FROM registry.fedoraproject.org/fedora:36 AS builder
 RUN dnf install -y cargo openssl-devel xz-devel
 WORKDIR /build
 COPY Cargo.* ./
@@ -11,7 +11,7 @@ RUN sed -i 's/^debug = true$/debug = false/' Cargo.toml
 RUN sh -c 'if [ $(uname -p) != x86_64 ]; then sed -i "s/^debug = false$/debug = false\nopt-level = 0/" Cargo.toml; fi'
 RUN cargo build --release
 
-FROM registry.fedoraproject.org/fedora:35
+FROM registry.fedoraproject.org/fedora:36
 RUN dnf install -y /usr/bin/gpg /usr/sbin/kpartx /usr/bin/lsblk \
     /usr/sbin/udevadm && \
     dnf clean all
