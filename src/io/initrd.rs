@@ -16,7 +16,7 @@ use anyhow::{anyhow, Context, Result};
 use cpio::{write_cpio, NewcBuilder, NewcReader};
 use lazy_static::lazy_static;
 use std::collections::BTreeMap;
-use std::io::{BufRead, BufReader, Cursor, Read};
+use std::io::{BufRead, Cursor, Read};
 use xz2::stream::{Check, Stream};
 use xz2::write::XzEncoder;
 
@@ -86,7 +86,7 @@ impl Initrd {
     /// Read an initrd containing compressed and/or uncompressed archives,
     /// ignoring paths not matching the specified glob patterns.
     pub fn from_reader_filtered<R: Read>(source: R, filter: &GlobMatcher) -> Result<Self> {
-        let mut source = BufReader::with_capacity(BUFFER_SIZE, source);
+        let mut source = PeekReader::with_capacity(BUFFER_SIZE, source);
         let mut result = Self::default();
         // loop until EOF
         while !source
@@ -234,6 +234,8 @@ mod tests {
                 "gzip/world".into() => b"WORLD\n".to_vec(),
                 "xz/hello".into() => b"HELLO\n".to_vec(),
                 "xz/world".into() => b"WORLD\n".to_vec(),
+                "zstd/hello".into() => b"HELLO\n".to_vec(),
+                "zstd/world".into() => b"WORLD\n".to_vec(),
             }
         );
     }
@@ -268,8 +270,8 @@ mod tests {
         let initrd = Initrd::from_reader(&*archive).unwrap();
         assert_eq!(initrd.find(&matcher("gzip/hello")).len(), 1);
         assert_eq!(initrd.find(&matcher("gzip/*")).len(), 2);
-        assert_eq!(initrd.find(&matcher("*/hello")).len(), 4);
-        assert_eq!(initrd.find(&matcher("*")).len(), 8);
+        assert_eq!(initrd.find(&matcher("*/hello")).len(), 5);
+        assert_eq!(initrd.find(&matcher("*")).len(), 10);
         assert_eq!(initrd.find(&matcher("z")).len(), 0);
 
         // filtered initrd

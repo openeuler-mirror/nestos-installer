@@ -22,9 +22,11 @@ mod hash;
 mod ignition;
 mod initrd;
 mod limit;
+mod peek;
 mod tee;
 mod verify;
 mod xz;
+mod zstd;
 
 pub use self::bls::*;
 pub use self::compress::*;
@@ -32,9 +34,11 @@ pub use self::hash::*;
 pub use self::ignition::*;
 pub use self::initrd::*;
 pub use self::limit::*;
+pub use self::peek::*;
 pub use self::tee::*;
 pub use self::verify::*;
 pub use self::xz::*;
+pub use self::zstd::*;
 
 // The default BufReader/BufWriter buffer size is 8 KiB, which isn't large
 // enough to fully amortize system call overhead.

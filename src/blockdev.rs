@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// change coreos to nestos
-
 use anyhow::{anyhow, bail, Context, Result};
 use gptman::{GPTPartitionEntry, GPT};
 use nix::sys::stat::{major, minor};
@@ -43,14 +41,15 @@ use crate::{runcmd, runcmd_output};
 
 #[derive(Debug)]
 pub struct Disk {
-    pub path: String,
+    path: String,
 }
 
 impl Disk {
-    pub fn new(path: &str) -> Result<Self> {
-        let canon_path = Path::new(path)
+    pub fn new<P: AsRef<Path>>(path: P) -> Result<Self> {
+        let path = path.as_ref();
+        let canon_path = path
             .canonicalize()
-            .with_context(|| format!("canonicalizing {}", path))?;
+            .with_context(|| format!("canonicalizing {}", path.display()))?;
 
         let canon_path = canon_path
             .to_str()
@@ -58,7 +57,7 @@ impl Disk {
                 format!(
                     "path {} canonicalized from {} is not UTF-8",
                     canon_path.display(),
-                    path
+                    path.display()
                 )
             })?
             .to_string();
@@ -158,7 +157,7 @@ impl Disk {
         // Our investigation found nothing.  If the device is expected to be
         // partitionable but reread failed, we evidently missed something,
         // so error out for safety
-        if !self.is_dm_device()? {
+        if !self.is_dm_device() {
             return rereadpt_result;
         }
 
@@ -168,22 +167,33 @@ impl Disk {
     /// Get a handle to the set of device nodes for individual partitions
     /// of the device.
     pub fn get_partition_table(&self) -> Result<Box<dyn PartTable>> {
-        if self.is_dm_device()? {
+        if self.is_dm_device() {
             Ok(Box::new(PartTableKpartx::new(&self.path)?))
         } else {
             Ok(Box::new(PartTableKernel::new(&self.path)?))
         }
     }
 
-    fn is_dm_device(&self) -> Result<bool> {
-        let canon_path = Path::new(&self.path)
-            .canonicalize()
-            .with_context(|| format!("canonicalizing {}", &self.path))?;
-        // convert back to &str because .starts_with on a Path doesn't mean the same thing
-        let canon_path = canon_path
-            .to_str()
-            .with_context(|| format!("path {} is not UTF-8", canon_path.display()))?;
-        Ok(canon_path.starts_with("/dev/dm-"))
+    pub fn is_dm_device(&self) -> bool {
+        self.path.starts_with("/dev/dm-")
+    }
+
+    pub fn is_luks_integrity(&self) -> Result<bool> {
+        if !self.is_dm_device() {
+            return Ok(false);
+        }
+        Ok(runcmd_output!(
+            "dmsetup",
+            "info",
+            "--columns",
+            "--noheadings",
+            "-o",
+            "uuid",
+            &self.path
+        )
+        .with_context(|| format!("checking if device {} is type LUKS integrity", self.path))?
+        .trim()
+        .starts_with("CRYPT-INTEGRITY-"))
     }
 }
 
@@ -560,6 +570,16 @@ impl SavedPartitions {
         let gpt = match GPT::find_from(disk) {
             Ok(gpt) => gpt,
             Err(gptman::Error::InvalidSignature) => {
+                // ensure no indexes are listed to be saved from a MBR disk
+                // we don't need to check for labels since MBR does not support them
+                if filters
+                    .iter()
+                    .any(|f| matches!(f, PartitionFilter::Index(_, _)))
+                    && disk_has_mbr(disk).context("checking if disk has an MBR")?
+                {
+                    bail!("saving partitions from an MBR disk is not yet supported");
+                }
+
                 // no GPT on this disk, so no partitions to save
                 return Ok(Self {
                     sector_size,
@@ -1093,6 +1113,14 @@ pub fn get_gpt_size(file: &mut (impl Read + Seek)) -> Result<u64> {
     Ok(gpt.header.first_usable_lba * gpt.sector_size)
 }
 
+fn disk_has_mbr(file: &mut (impl Read + Seek)) -> Result<bool> {
+    let mut sig = [0u8; 2];
+    file.seek(SeekFrom::Start(510))
+        .context("seeking to MBR signature")?;
+    file.read_exact(&mut sig).context("reading MBR signature")?;
+    Ok(sig == [0x55, 0xaa])
+}
+
 pub fn udev_settle() -> Result<()> {
     // "udevadm settle" silently no-ops if the udev socket is missing, and
     // then lsblk can't find partition labels.  Catch this early.
@@ -1459,7 +1487,7 @@ mod tests {
             let saved = SavedPartitions::new_from_file(&mut base, 512, filter).unwrap();
             let mut disk = make_unformatted_disk();
             saved.overwrite(&mut disk).unwrap();
-            assert!(disk_has_mbr(&mut disk), "test {}", testnum);
+            assert!(disk_has_mbr(&mut disk).unwrap(), "test {}", testnum);
             let result = GPT::find_from(&mut disk).unwrap();
             assert_eq!(
                 get_gpt_size(&mut disk).unwrap(),
@@ -1471,7 +1499,7 @@ mod tests {
             let mut disk = make_disk(512, &merge_base_parts);
             saved.merge(&mut image, &mut disk).unwrap();
             assert!(
-                disk_has_mbr(&mut disk) == !expected_blank.is_empty(),
+                disk_has_mbr(&mut disk).unwrap() == !expected_blank.is_empty(),
                 "test {}",
                 testnum
             );
@@ -1505,7 +1533,7 @@ mod tests {
             let saved =
                 SavedPartitions::new_from_file(&mut disk, *sector_size as u64, &vec![]).unwrap();
             saved.overwrite(&mut disk).unwrap();
-            assert!(disk_has_mbr(&mut disk), "{}", *sector_size);
+            assert!(disk_has_mbr(&mut disk).unwrap(), "{}", *sector_size);
             disk.seek(SeekFrom::Start(0)).unwrap();
             let mut buf = vec![0u8; *sector_size + 1];
             disk.read_exact(&mut buf).unwrap();
@@ -1537,6 +1565,30 @@ mod tests {
             format!("{:#}", err).contains(&gptman::Error::InvalidPartitionBoundaries.to_string()),
             "incorrect error: {:#}",
             err
+        );
+
+        // test trying to save partitions from a MBR disk
+        let mut disk = make_unformatted_disk();
+        gptman::GPT::write_protective_mbr_into(&mut disk, 512).unwrap();
+        // label only
+        SavedPartitions::new(&mut disk, 512, &vec![label("*i*")]).unwrap();
+        // index only
+        assert_eq!(
+            SavedPartitions::new(&mut disk, 512, &vec![Index(index(1), index(1))])
+                .unwrap_err()
+                .to_string(),
+            "saving partitions from an MBR disk is not yet supported"
+        );
+        // label and index
+        assert_eq!(
+            SavedPartitions::new(
+                &mut disk,
+                512,
+                &vec![Index(index(1), index(1)), label("*i*")]
+            )
+            .unwrap_err()
+            .to_string(),
+            "saving partitions from an MBR disk is not yet supported"
         );
 
         // test sector size mismatch
@@ -1667,13 +1719,6 @@ mod tests {
             guid[i % guid.len()] ^= *b;
         }
         guid
-    }
-
-    fn disk_has_mbr(disk: &mut File) -> bool {
-        let mut sig = [0u8; 2];
-        disk.seek(SeekFrom::Start(510)).unwrap();
-        disk.read_exact(&mut sig).unwrap();
-        sig == [0x55, 0xaa]
     }
 
     fn assert_partitions_eq(expected: &Vec<(u32, GPTPartitionEntry)>, found: &GPT, message: &str) {

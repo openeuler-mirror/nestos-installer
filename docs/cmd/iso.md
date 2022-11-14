@@ -34,6 +34,12 @@ OPTIONS:
             Automatically run installer, installing to the specified destination device.  The
             resulting boot media will overwrite the destination device without confirmation.
 
+        --dest-console <spec>
+            Kernel and bootloader console for dest
+            Automatically run installer, configuring the specified kernel and bootloader
+            console for the destination system.  The argument uses the same syntax as the
+            parameter to the "console=" kernel argument.
+
         --dest-karg-append <arg>
             Destination kernel argument to append
 
@@ -54,6 +60,14 @@ OPTIONS:
             installer is enabled via additional options, network settings will also be applied
             in the destination system, including when Ignition is run.
 
+        --network-nmstate <path>
+            Nmstate file for live & dest
+            Configure networking using NetworkManager keyfiles generated from the specified
+            Nmstate files. Network settings will be applied in the live environment, including
+            when Ignition is run.  If installer is enabled via additional options, network
+            settings will also be applied in the destination system, including when Ignition is
+            run.
+            
         --ignition-ca <path>
             Ignition PEM CA bundle for live & dest
 
