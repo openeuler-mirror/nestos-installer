@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// change coreos to nestos
-
 use anyhow::{anyhow, bail, Context, Result};
 use byte_unit::Byte;
 use nix::unistd::isatty;
@@ -257,16 +255,16 @@ where
         &source.artifact_type,
     ));
 
-    // Wrap in a BufReader so DecompressReader can peek at the first few
+    // Wrap in a PeekReader so DecompressReader can peek at the first few
     // bytes for format sniffing, and to amortize read overhead.  Don't
     // trust the content-type since the server may not be configured
     // correctly, or the file might be local.  Then wrap in a
     // DecompressReader for decompression.
-    let buf_reader = BufReader::with_capacity(BUFFER_SIZE, reader);
+    let peek_reader = PeekReader::with_capacity(BUFFER_SIZE, reader);
     if decompress {
-        reader = Box::new(DecompressReader::new(buf_reader)?);
+        reader = Box::new(DecompressReader::new(peek_reader)?);
     } else {
-        reader = Box::new(buf_reader);
+        reader = Box::new(peek_reader);
     }
 
     // Wrap again for limit checking.
@@ -531,6 +529,11 @@ mod tests {
         test_one_signed_file(
             &include_bytes!("../fixtures/verify/1M.xz")[..],
             &include_bytes!("../fixtures/verify/1M.xz.sig")[..],
+            &[0; 1 << 20][..],
+        );
+        test_one_signed_file(
+            &include_bytes!("../fixtures/verify/1M.zst")[..],
+            &include_bytes!("../fixtures/verify/1M.zst.sig")[..],
             &[0; 1 << 20][..],
         );
     }

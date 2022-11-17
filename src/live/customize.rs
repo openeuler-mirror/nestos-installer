@@ -14,10 +14,12 @@
 
 //! Infrastructure for high-level ISO/PXE customizations
 
-// change coreos to nestos
 use anyhow::{bail, Context, Result};
+use nmstate::NetworkState;
 use serde::Deserialize;
+use serde_json;
 use std::fs::read;
+use std::path::Path;
 
 use crate::cmdline::*;
 use crate::io::*;
@@ -34,12 +36,20 @@ const COREOS_ISO_FEATURES_PATH: &str = "COREOS/FEATURES.JSO";
 /// and /coreos/features.json in the live ISO.  Written by
 /// cosa buildextend-live.
 #[derive(Default, Deserialize)]
-#[serde(rename_all = "kebab-case")]
+#[serde(default, rename_all = "kebab-case")]
 pub(super) struct OsFeatures {
     /// Installer reads config files from /etc/coreos/installer.d
     pub installer_config: bool,
+    /// Directives supported in installer config files
+    pub installer_config_directives: InstallerDirectives,
     /// Live initrd reads NM keyfiles from /etc/coreos-firstboot-network
     pub live_initrd_network: bool,
+}
+
+#[derive(Default, Deserialize)]
+#[serde(default, rename_all = "kebab-case")]
+pub(super) struct InstallerDirectives {
+    pub console: bool,
 }
 
 impl OsFeatures {
@@ -95,6 +105,14 @@ impl LiveInitrd {
         if let Some(path) = &common.dest_device {
             conf.dest_device(path)?;
         }
+        for arg in &common.dest_console {
+            conf.dest_console(arg)?;
+        }
+        Console::maybe_warn_on_kargs(
+            &common.dest_karg_append,
+            "--dest-karg-append",
+            "--dest-console",
+        );
         for arg in &common.dest_karg_append {
             conf.dest_karg_append(arg);
         }
@@ -103,6 +121,9 @@ impl LiveInitrd {
         }
         for path in &common.network_keyfile {
             conf.network_keyfile(path)?;
+        }
+        for path in &common.network_nmstate {
+            conf.network_nmstate(path)?;
         }
         for path in &common.ignition_ca {
             conf.ignition_ca(path)?;
@@ -141,6 +162,17 @@ impl LiveInitrd {
         Ok(())
     }
 
+    pub fn dest_console(&mut self, console: &Console) -> Result<()> {
+        if !self.features.installer_config_directives.console {
+            bail!("This OS image does not support customizing the destination console.");
+        }
+        self.installer
+            .get_or_insert_with(Default::default)
+            .console
+            .push(console.clone());
+        Ok(())
+    }
+
     pub fn dest_karg_append(&mut self, arg: &str) {
         self.installer
             .get_or_insert_with(Default::default)
@@ -170,6 +202,35 @@ impl LiveInitrd {
         Ok(())
     }
 
+    pub fn network_nmstate(&mut self, path: &str) -> Result<()> {
+        if !self.features.live_initrd_network {
+            bail!("This OS image does not support customizing network settings.");
+        }
+        let net_state_reader = std::fs::File::open(path).context("opening nmstate file")?;
+        // Despite of the name the serde_yaml is able to parse JSON too.
+        let net_state: NetworkState =
+            serde_yaml::from_reader(net_state_reader).context("parsing nmstate")?;
+        let generated_conf = net_state
+            .gen_conf()
+            .context("generating configuration from nmstate")?;
+        let nm_connections = generated_conf
+            .get("NetworkManager")
+            .context("extracting NetworkManager generated config")?;
+        for (nm_con_file_name, nm_con_content) in nm_connections {
+            let nm_con_path = Path::new(INITRD_NETWORK_DIR).join(nm_con_file_name);
+            let nm_con_path_str = nm_con_path
+                .to_str()
+                .context("converting generated NetworkManager keyfile path to UTF-8")?;
+            if self.initrd.get(nm_con_path_str).is_some() {
+                bail!("config already specifies keyfile {}", nm_con_path_str);
+            }
+            self.initrd
+                .add(nm_con_path_str, nm_con_content.as_bytes().to_vec());
+        }
+        self.installer_copy_network = true;
+        Ok(())
+    }
+
     pub fn ignition_ca(&mut self, path: &str) -> Result<()> {
         let data = read(path).with_context(|| format!("reading {}", path))?;
         self.live.add_ca(&data)?;
@@ -181,7 +242,7 @@ impl LiveInitrd {
         self.install_hook(
             path,
             "pre",
-            "After=nesyos-installer-pre.target\nBefore=nestos-installer.service",
+            "After=nestos-installer-pre.target\nBefore=nestos-installer.service",
             "nestos-installer.service",
         )
     }
@@ -329,7 +390,9 @@ RequiredBy={install_target}",
             // Embed installer config in live config
             self.installer_config_bytes(
                 "customize.yaml",
-                &serde_yaml::to_vec(&conf).context("serializing installer config")?,
+                &serde_yaml::to_string(&conf)
+                    .context("serializing installer config")?
+                    .into_bytes(),
             )?;
         }
 

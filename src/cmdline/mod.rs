@@ -13,22 +13,22 @@
 // limitations under the License.
 
 // We don't care about the size of enum variants and don't want to box them
-
-// change coreos to nestos
 #![allow(clippy::large_enum_variant)]
 
 use clap::{AppSettings, Parser};
 use reqwest::Url;
 
+mod console;
+#[cfg(feature = "docgen")]
+mod doc;
 mod install;
-#[cfg(feature = "mangen")]
-mod man;
 mod serializer;
 mod types;
 
+pub use self::console::*;
+#[cfg(feature = "docgen")]
+pub use self::doc::*;
 pub use self::install::InstallConfig;
-#[cfg(feature = "mangen")]
-pub use self::man::*;
 pub use self::types::*;
 
 // Args are listed in --help in the order declared in these structs/enums.
@@ -169,8 +169,11 @@ pub enum PackCmd {
     /// Pack a minimal ISO into a CoreOS live ISO image
     MinimalIso(PackMinimalIsoConfig),
     /// Generate man pages for coreos-installer
-    #[cfg(feature = "mangen")]
+    #[cfg(feature = "docgen")]
     Man(PackManConfig),
+    /// Generate example config file for install subcommand
+    #[cfg(feature = "docgen")]
+    ExampleConfig(PackExampleConfigConfig),
 }
 
 #[derive(Debug, Parser)]
@@ -262,6 +265,13 @@ pub struct CommonCustomizeConfig {
     /// device without confirmation.
     #[clap(long, value_name = "path")]
     pub dest_device: Option<String>,
+    /// Kernel and bootloader console for dest
+    ///
+    /// Automatically run installer, configuring the specified kernel and
+    /// bootloader console for the destination system.  The argument uses
+    /// the same syntax as the parameter to the "console=" kernel argument.
+    #[clap(long, value_name = "spec")]
+    pub dest_console: Vec<Console>,
     /// Destination kernel argument to append
     ///
     /// Automatically run installer, adding the specified kernel argument
@@ -283,6 +293,15 @@ pub struct CommonCustomizeConfig {
     /// including when Ignition is run.
     #[clap(long, value_name = "path")]
     pub network_keyfile: Vec<String>,
+    /// Nmstate file for live & dest
+    ///
+    /// Configure networking using NetworkManager keyfiles generated from the
+    /// specified Nmstate files. Network settings will be applied in the live
+    /// environment, including when Ignition is run.  If installer is enabled
+    /// via additional options, network settings will also be applied in the
+    /// destination system, including when Ignition is run.
+    #[clap(long, value_name = "path")]
+    pub network_nmstate: Vec<String>,
     /// Ignition PEM CA bundle for live & dest
     ///
     /// Specify additional TLS certificate authorities to be trusted by
@@ -685,13 +704,17 @@ pub struct DevExtractInitrdConfig {
     pub filter: Vec<String>,
 }
 
-#[cfg(feature = "mangen")]
+#[cfg(feature = "docgen")]
 #[derive(Debug, Parser)]
 pub struct PackManConfig {
     /// Output directory
     #[clap(short = 'C', long, value_name = "path", default_value = ".")]
     pub directory: String,
 }
+
+#[cfg(feature = "docgen")]
+#[derive(Debug, Parser)]
+pub struct PackExampleConfigConfig {}
 
 #[cfg(test)]
 mod test {

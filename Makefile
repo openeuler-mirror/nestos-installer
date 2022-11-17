@@ -4,9 +4,16 @@ RDCORE ?= 1
 ifeq ($(RELEASE),1)
 	PROFILE ?= release
 	CARGO_ARGS = --release
+	STRIP_RDCORE ?= 0
 else
 	PROFILE ?= debug
-	CARGO_ARGS = --features mangen
+	CARGO_ARGS = --features docgen
+	# In debug mode (most often used by devs/CI), we default to stripping
+	# `rdcore` because it's otherwise huge and in kola's default 1G VMs can
+	# cause ENOSPC. In release mode (most often used by Koji/Brew), we don't do
+	# this because the debuginfo gets split out anyway. In either profile,
+	# we allow overriding the default.
+	STRIP_RDCORE ?= 1
 endif
 ifeq ($(RDCORE),1)
 	CARGO_ARGS := $(CARGO_ARGS) --features rdcore
@@ -20,20 +27,29 @@ ifneq ($(RDCORE),1)
 endif
 
 .PHONY: docs
-docs: all
+docs: all data/example-config.yaml
 	PROFILE=$(PROFILE) docs/_cmd.sh
+	PROFILE=$(PROFILE) docs/_config-file.sh
 	target/${PROFILE}/nestos-installer pack man -C man
+
+data/example-config.yaml: target/$(PROFILE)/nestos-installer Makefile
+	echo -e "# Sample installer config file\n# Automatically generated; do not edit\n" > $@
+	$< pack example-config >> $@
 
 .PHONY: clean
 clean:
 	cargo clean
 
 .PHONY: install
-install: install-bin install-man install-scripts install-systemd install-dracut
+install: install-bin install-data install-man install-scripts install-systemd install-dracut
 
 .PHONY: install-bin
 install-bin:
 	install -D -t ${DESTDIR}/usr/bin target/${PROFILE}/nestos-installer
+
+.PHONY: install-data
+install-data:
+	install -D -m 644 -t ${DESTDIR}/usr/share/nestos-installer data/example-config.yaml
 
 .PHONY: install-man
 install-man:
@@ -41,7 +57,7 @@ install-man:
 	$(foreach src,$(wildcard man/*.8),gzip -9c $(src) > ${DESTDIR}/usr/share/man/man8/$(notdir $(src)).gz && ) :
 
 .PHONY: install-scripts
-install-scripts: 
+install-scripts:
 	install -D -t $(DESTDIR)/usr/libexec scripts/nestos-installer-disable-device-auto-activation scripts/nestos-installer-service
 
 .PHONY: install-systemd
@@ -56,5 +72,12 @@ install-dracut:
 			bn=$$(basename $$x); \
 			install -D -t $(DESTDIR)/usr/lib/dracut/modules.d/$${bn} $$x/*; \
 		done; \
-		install -D -t ${DESTDIR}/usr/lib/dracut/modules.d/50rdcore target/${PROFILE}/rdcore; \
+		if [ $(STRIP_RDCORE) -eq 1 ]; then \
+			cp target/${PROFILE}/rdcore target/${PROFILE}/rdcore.stripped; \
+			strip -g target/${PROFILE}/rdcore.stripped; \
+			install -D target/${PROFILE}/rdcore.stripped ${DESTDIR}/usr/lib/dracut/modules.d/50rdcore/rdcore; \
+			rm target/${PROFILE}/rdcore.stripped; \
+		else \
+			install -D -t ${DESTDIR}/usr/lib/dracut/modules.d/50rdcore target/${PROFILE}/rdcore; \
+		fi; \
 	fi

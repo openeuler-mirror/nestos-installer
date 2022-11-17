@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//change coreos to nestos
-
 use crate::blockdev::Mount;
 use crate::io::{visit_bls_entry, visit_bls_entry_options, Initrd, KargsEditor};
 use crate::runcmd;
@@ -62,11 +60,7 @@ fn find_files<P: AsRef<Path>>(
         .collect::<Result<Vec<_>>>()
 }
 
-fn generate_initrd<P: AsRef<Path>>(
-    source: P,
-    files: &[PathBuf],
-    rootfs: Option<String>,
-) -> Result<NamedTempFile> {
+fn generate_initrd<P: AsRef<Path>>(source: P, files: &[PathBuf]) -> Result<NamedTempFile> {
     let source = source.as_ref();
     let mut dest = Builder::new()
         .prefix("initrd")
@@ -84,13 +78,9 @@ fn generate_initrd<P: AsRef<Path>>(
     for path in files {
         let contents =
             std::fs::read(path).with_context(|| format!("reading {}", path.display()))?;
-        let mut path = path
+        let path = path
             .to_str()
             .with_context(|| format!("path {} is not UTF-8", path.display()))?;
-        if let Some(ref rootfs) = rootfs {
-            // during cosa-build rootfs includes ostree commit path
-            path = path.trim_start_matches(rootfs);
-        }
         initrd.add(path, contents);
     }
 
@@ -131,8 +121,8 @@ fn generate_sdboot(
     mountpoint: &Path,
     boot: &Path,
     hostkey: Option<String>,
-    rootfs: Option<String>,
     kargs: Option<String>,
+    files: Option<Vec<String>>,
 ) -> Result<PathBuf> {
     let (kernel, initrd, mut options) = get_info_from_bls(boot)?;
 
@@ -152,26 +142,30 @@ fn generate_sdboot(
         .write_all(options.as_bytes())
         .context("writing zipl se cmdline")?;
 
-    let mut lukskeys_path = "/etc/luks/".to_string();
-    let mut crypttab_path = "/etc/crypttab".to_string();
-    let mut hostkeys_path = "/etc/se-hostkeys/".to_string();
+    let mut appendies = files.map_or_else(Vec::new, |v| v.iter().map(PathBuf::from).collect());
 
-    // during cosa-build rootfs includes ostree commit path
-    if let Some(ref rootfs) = rootfs {
-        lukskeys_path.insert_str(0, rootfs);
-        crypttab_path.insert_str(0, rootfs);
-        hostkeys_path.insert_str(0, rootfs);
-    }
-    // new initrd with LUKS keys & config
-    let mut luks_files = find_files(&lukskeys_path, |e: &DirEntry| Ok(e.metadata()?.is_file()))?;
-    luks_files.push(PathBuf::from(crypttab_path));
-    let initrd = generate_initrd(&initrd, &luks_files, rootfs)?;
+    let lukskeys_path = PathBuf::from("/etc/luks");
+    let crypttab_path = PathBuf::from("/etc/crypttab");
+    if lukskeys_path.exists() && crypttab_path.exists() {
+        let mut keys = find_files(&lukskeys_path, |e: &DirEntry| Ok(e.metadata()?.is_file()))?;
+        appendies.append(&mut keys);
+        appendies.push(crypttab_path);
+    };
+
+    // Generate new initrd only when we append smth
+    let new_initrd = if appendies.is_empty() {
+        None
+    } else {
+        Some(generate_initrd(&initrd, &appendies)?)
+    };
+
+    let initrd = new_initrd.as_ref().map(|v| v.path()).unwrap_or(&initrd);
 
     // during cosa-build we override hostkey(s) with a universal one
     let hostkeys = if let Some(hostkey) = hostkey {
         vec![PathBuf::from(hostkey)]
     } else {
-        find_files(&hostkeys_path, |e: &DirEntry| {
+        find_files("/etc/se-hostkeys", |e: &DirEntry| {
             Ok(e.file_name()
                 .to_str()
                 .map(|p| p.starts_with("ibm-z-hostkey-"))
@@ -186,7 +180,7 @@ fn generate_sdboot(
         .arg("-i")
         .arg(kernel)
         .arg("-r")
-        .arg(initrd.path())
+        .arg(initrd)
         .arg("-p")
         .arg(cmdline.path())
         .arg("--no-verify")
@@ -203,9 +197,9 @@ fn generate_sdboot(
 pub fn zipl<P: AsRef<Path>>(
     boot: P,
     hostkey: Option<String>,
-    rootfs: Option<String>,
     kargs: Option<String>,
     mode: ZiplSecexMode,
+    files: Option<Vec<String>>,
 ) -> Result<()> {
     let boot = boot.as_ref();
 
@@ -218,7 +212,7 @@ pub fn zipl<P: AsRef<Path>>(
     if secex {
         // Secure Execution is only supported with pre-built qemu-secex image
         let target = Mount::try_mount("/dev/disk/by-label/se", "ext4", MsFlags::empty())?;
-        let sdboot = generate_sdboot(target.mountpoint(), boot, hostkey, rootfs, kargs)?;
+        let sdboot = generate_sdboot(target.mountpoint(), boot, hostkey, kargs, files)?;
 
         runcmd!(
             "zipl",

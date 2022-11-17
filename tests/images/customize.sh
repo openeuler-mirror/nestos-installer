@@ -33,12 +33,17 @@ grepq() {
 
 # kargs we need on every boot
 kargs_common=(
-    # make sure we get log output
-    console=ttyS0,115200
-    # make sure it's readable
+    # make sure log output is readable
     systemd.log_color=0
     # force NM in initrd
     rd.neednet=1
+)
+
+# kargs we need on live boots
+kargs_live=(
+    # make sure we get log output
+    # the installed system sets this with --dest-console instead
+    console=ttyS0,115200
 )
 
 # options that don't initiate an install, even if they pertain to one
@@ -60,6 +65,8 @@ opts_common=(
     --ignition-ca "${fixtures}/cert.pem"
     # Condition of @applied-live-ign@ and @applied-dest-ign@
     --network-keyfile "${fixtures}/installer-test.nmconnection"
+    --network-nmstate "${fixtures}/installer-test-nmstate-json.json"
+    --network-nmstate "${fixtures}/installer-test-nmstate-yaml.yaml"
 )
 
 # options that do initiate an install
@@ -75,6 +82,8 @@ opts_install=(
     # Tested implicitly
     --dest-device "/dev/vda"
     # Condition of @applied-dest-ign@
+    --dest-console "ttyS0,115200"
+    # Condition of @applied-dest-ign@
     --dest-karg-append dest-karg
     # Condition of @applied-dest-ign@
     --dest-karg-delete ignition.platform.id=metal
@@ -86,7 +95,7 @@ for arg in ${kargs_common[@]}; do
 done
 
 opts_iso=()
-for arg in ${kargs_common[@]}; do
+for arg in ${kargs_common[@]} ${kargs_live[@]}; do
     opts_iso+=(--live-karg-append "${arg}")
 done
 
@@ -123,7 +132,7 @@ qemu_iso() {
 qemu_pxe() {
     cat > ipxe <<EOF
 #!ipxe
-kernel tftp://10.0.2.2/src-kernel ignition.firstboot ignition.platform.id=qemu ${kargs_common[*]}
+kernel tftp://10.0.2.2/src-kernel ignition.firstboot ignition.platform.id=qemu ${kargs_common[*]} ${kargs_live[*]}
 initrd tftp://10.0.2.2/initrd
 initrd tftp://10.0.2.2/src-rootfs
 boot
@@ -207,6 +216,9 @@ xz -dc "${rootdir}/fixtures/iso/embed-areas-2021-09.iso.xz" > old.iso
 (nestos-installer iso customize old.iso \
     --network-keyfile "${fixtures}/installer-test.nmconnection" 2>&1 ||:) |
     grepq "does not support customizing network settings"
+(coreos-installer iso customize old.iso \
+    --network-nmstate "${fixtures}/installer-test-nmstate.json" 2>&1 ||:) |
+    grepq "does not support customizing network settings"
 (nestos-installer iso customize old.iso --dest-device /dev/loop0 2>&1 ||:) |
     grepq "does not support customizing installer configuration"
 nestos-installer iso customize old.iso \
@@ -268,6 +280,22 @@ nestos-installer pxe customize src-initrd -o initrd
     --network-keyfile "${fixtures}/installer-test.nmconnection" 2>&1 ||:) |
     grepq "already specifies keyfile"
 (iso_customize \
+    --network-keyfile "${fixtures}/nmstate-json-eth1.nmconnection" \
+    --network-nmstate "${fixtures}/installer-test-nmstate-json.json" 2>&1 ||:) |
+    grepq "already specifies keyfile"
+(iso_customize \
+    --network-keyfile "${fixtures}/nmstate-json-eth2.nmconnection" \
+    --network-nmstate "${fixtures}/installer-test-nmstate-json.json" 2>&1 ||:) |
+    grepq "already specifies keyfile"
+(iso_customize \
+    --network-keyfile "${fixtures}/nmstate-yaml-eth1.nmconnection" \
+    --network-nmstate "${fixtures}/installer-test-nmstate-yaml.yaml" 2>&1 ||:) |
+    grepq "already specifies keyfile"
+(iso_customize \
+    --network-keyfile "${fixtures}/nmstate-yaml-eth2.nmconnection" \
+    --network-nmstate "${fixtures}/installer-test-nmstate-yaml.yaml" 2>&1 ||:) |
+    grepq "already specifies keyfile"
+(iso_customize \
     --live-ignition "${fixtures}/installer-test.nmconnection"  2>&1 ||:) |
     grepq "parsing Ignition config"
 (iso_customize \
@@ -303,7 +331,10 @@ check_dest
 
 # User config passed directly to installer without wrapping
 echo "=== ISO with one dest config ==="
-iso_customize --dest-ignition "${fixtures}/dest-2.ign" --dest-device /dev/vda
+iso_customize \
+    --dest-ignition "${fixtures}/dest-2.ign" \
+    --dest-karg-append console=ttyS0,115200 \
+    --dest-device /dev/vda
 qemu_iso
 qemu_disk
 assert @applied-dest-2-ign@

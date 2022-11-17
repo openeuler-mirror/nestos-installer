@@ -137,17 +137,18 @@ pub struct ZiplConfig {
     #[clap(long, default_value = "auto")]
     pub secex_mode: s390x::ZiplSecexMode,
 
-    /// Path to rootfs
-    #[clap(long, value_name = "ROOTFS")]
-    pub rootfs: Option<String>,
-
     /// Path to hostkey
     #[clap(long, value_name = "HOSTKEY")]
     pub hostkey: Option<String>,
 
-    /// Extra kargs
-    #[clap(long, value_name = "KARGS")]
-    pub kargs: Option<String>,
+    /// Append kernel argument
+    #[clap(long, value_name = "KARG")]
+    #[clap(alias = "kargs")]
+    pub append_karg: Option<Vec<String>>,
+
+    /// Append file to sdboot image
+    #[clap(long, value_name = "FILE")]
+    pub append_file: Option<Vec<String>>,
 }
 
 #[cfg(test)]

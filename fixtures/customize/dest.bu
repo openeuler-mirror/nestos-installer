@@ -9,15 +9,21 @@ systemd:
         Description=Dest Ignition Applied
         Before=multi-user.target
         ConditionPathExists=/etc/NetworkManager/system-connections/installer-test.nmconnection
+        ConditionPathExists=/etc/NetworkManager/system-connections/nmstate-json-eth1.nmconnection
+        ConditionPathExists=/etc/NetworkManager/system-connections/nmstate-json-eth2.nmconnection
+        ConditionPathExists=/etc/NetworkManager/system-connections/nmstate-yaml-eth1.nmconnection
+        ConditionPathExists=/etc/NetworkManager/system-connections/nmstate-yaml-eth2.nmconnection        
         ConditionKernelCommandLine=install-config-karg-1
         ConditionKernelCommandLine=install-config-karg-2
         ConditionKernelCommandLine=dest-karg
         ConditionKernelCommandLine=!ignition.platform.id=metal
         ConditionKernelCommandLine=ignition.platform.id=qemu
+        ConditionKernelCommandLine=console=ttyS0,115200n8        
 
         [Service]
         Type=oneshot
         RemainAfterExit=true
+        ExecStart=/bin/grep -qz 'serial --unit=0 --speed=115200 --word=8 --parity=no.terminal_input serial.terminal_output serial.#' /boot/grub2/grub.cfg        
         ExecStart=/bin/echo @applied-dest-ign@
         StandardOutput=tty
 

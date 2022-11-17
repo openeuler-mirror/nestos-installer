@@ -1,10 +1,10 @@
 .ie \n(.g .ds Aq \(aq
 .el .ds Aq '
-.TH nestos-installer 8  "nestos-installer 0.15.0" 
+.TH nestos-installer 8  "nestos-installer 0.16.0" 
 .SH NAME
 nestos\-installer\-pxe\-customize \- Create a custom live PXE boot config
 .SH SYNOPSIS
-\fBnestos\-installer\-pxe\-customize\fR [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fB\-\-dest\-ignition\fR] [\fB\-\-dest\-device\fR] [\fB\-\-dest\-karg\-append\fR] [\fB\-\-dest\-karg\-delete\fR] [\fB\-\-network\-keyfile\fR] [\fB\-\-ignition\-ca\fR] [\fB\-\-pre\-install\fR] [\fB\-\-post\-install\fR] [\fB\-\-installer\-config\fR] [\fB\-\-live\-ignition\fR] <\fB\-o\fR|\fB\-\-output\fR> <\fIpath\fR> 
+\fBcoreos\-installer\-pxe\-customize\fR [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fB\-\-dest\-ignition\fR] [\fB\-\-dest\-device\fR] [\fB\-\-dest\-console\fR] [\fB\-\-dest\-karg\-append\fR] [\fB\-\-dest\-karg\-delete\fR] [\fB\-\-network\-keyfile\fR] [\fB\-\-network\-nmstate\fR] [\fB\-\-ignition\-ca\fR] [\fB\-\-pre\-install\fR] [\fB\-\-post\-install\fR] [\fB\-\-installer\-config\fR] [\fB\-\-live\-ignition\fR] <\fB\-o\fR|\fB\-\-output\fR> <\fIpath\fR> 
 .SH DESCRIPTION
 Create a custom live PXE boot config
 .SH OPTIONS
@@ -25,6 +25,11 @@ Install destination device
 
 Automatically run installer, installing to the specified destination device.  The resulting boot media will overwrite the destination device without confirmation.
 .TP
+\fB\-\-dest\-console\fR=\fIspec\fR
+Kernel and bootloader console for dest
+
+Automatically run installer, configuring the specified kernel and bootloader console for the destination system.  The argument uses the same syntax as the parameter to the "console=" kernel argument.
+.TP
 \fB\-\-dest\-karg\-append\fR=\fIarg\fR
 Destination kernel argument to append
 
@@ -39,6 +44,11 @@ Automatically run installer, deleting the specified kernel argument for every bo
 NetworkManager keyfile for live & dest
 
 Configure networking using the specified NetworkManager keyfile. Network settings will be applied in the live environment, including when Ignition is run.  If installer is enabled via additional options, network settings will also be applied in the destination system, including when Ignition is run.
+.TP
+\fB\-\-network\-nmstate\fR=\fIpath\fR
+Nmstate file for live & dest
+
+Configure networking using NetworkManager keyfiles generated from the specified Nmstate files. Network settings will be applied in the live environment, including when Ignition is run.  If installer is enabled via additional options, network settings will also be applied in the destination system, including when Ignition is run.
 .TP
 \fB\-\-ignition\-ca\fR=\fIpath\fR
 Ignition PEM CA bundle for live & dest
@@ -71,4 +81,4 @@ Output file
 <\fIpath\fR>
 NestOS live initramfs image
 .SH VERSION
-v0.15.0
+v0.16.0

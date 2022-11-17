@@ -12,6 +12,7 @@ cd "${tmpd}"
 unpack=(
     embed-areas-2020-09.iso
     embed-areas-2021-09.iso
+    embed-areas-2022-02.iso
     synthetic.iso
 )
 for f in "${unpack[@]}"; do
@@ -66,6 +67,10 @@ try iso extract minimal-iso embed-areas-2021-09.iso minimal.iso |
 # no PXE images
 try iso extract pxe synthetic.iso |
     grepq "Unrecognized nestos ISO image"
+
+# no install --console support
+try iso customize --dest-console ttyS0 embed-areas-2022-02.iso |
+    grepq "does not support customizing the destination console"
 
 # Done
 echo "Success."
