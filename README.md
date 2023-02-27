@@ -28,7 +28,7 @@ nestos-installer 根据 coreos-installer 进行适配修改。
 
 ## Contact
 
-- Mailing list: [coreos@lists.fedoraproject.org](https://lists.fedoraproject.org/archives/list/coreos@lists.fedoraproject.org/)
+- Mail: duyiwei@kylinos.cn  fushanqing@kylinos.cn
 - Reporting bugs: [issues](https://gitee.com/openeuler/nestos-installer/issues/new)
 
 
