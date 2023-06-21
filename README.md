@@ -28,7 +28,7 @@ nestos-installer 根据 coreos-installer 进行适配修改。
 
 ## Contact
 
-- Mail: duyiwei@kylinos.cn  fushanqing@kylinos.cn
+- Mail: duyiwei@kylinos.cn
 - Reporting bugs: [issues](https://gitee.com/openeuler/nestos-installer/issues/new)
 
 
