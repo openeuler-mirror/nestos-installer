@@ -1,19 +1,13 @@
 .ie \n(.g .ds Aq \(aq
 .el .ds Aq '
-.TH nestos-installer 8  "nestos-installer 0.17.0" 
+.TH nestos-installer 8  "nestos-installer 0.18.0" 
 .SH NAME
 nestos\-installer\-iso\-extract\-minimal\-iso \- Extract a minimal ISO from a nestos live ISO image
 .SH SYNOPSIS
-\fBnestos\-installer\-iso\-extract\-minimal\-iso\fR [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fB\-\-output\-rootfs\fR] [\fB\-\-rootfs\-url\fR] <\fIISO\fR> [\fIOUTPUT_ISO\fR] 
+\fBnestos\-installer\-iso\-extract\-minimal\-iso\fR [\fB\-\-output\-rootfs\fR] [\fB\-\-rootfs\-url\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] <\fIISO\fR> [\fIOUTPUT_ISO\fR] 
 .SH DESCRIPTION
-Extract a minimal ISO from a NestOS live ISO image
+Extract a minimal ISO from a nestos live ISO image
 .SH OPTIONS
-.TP
-\fB\-h\fR, \fB\-\-help\fR
-Print help information
-.TP
-\fB\-V\fR, \fB\-\-version\fR
-Print version information
 .TP
 \fB\-\-output\-rootfs\fR=\fIPATH\fR
 Extract rootfs image as well
@@ -21,10 +15,16 @@ Extract rootfs image as well
 \fB\-\-rootfs\-url\fR=\fIURL\fR
 Inject rootfs URL karg into minimal ISO
 .TP
+\fB\-h\fR, \fB\-\-help\fR
+Print help
+.TP
+\fB\-V\fR, \fB\-\-version\fR
+Print version
+.TP
 <\fIISO\fR>
 ISO image
 .TP
 [\fIOUTPUT_ISO\fR] [default: \-]
 Minimal ISO output file
 .SH VERSION
-v0.17.0
+v0.18.0

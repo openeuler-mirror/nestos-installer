@@ -1,19 +1,13 @@
 .ie \n(.g .ds Aq \(aq
 .el .ds Aq '
-.TH nestos-installer 8  "nestos-installer 0.17.0" 
+.TH nestos-installer 8  "nestos-installer 0.18.0" 
 .SH NAME
 nestos\-installer\-iso\-customize \- Customize a nestos live ISO image
 .SH SYNOPSIS
-\fBnestos\-installer\-iso\-customize\fR [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fB\-\-dest\-ignition\fR] [\fB\-\-dest\-device\fR] [\fB\-\-dest\-console\fR] [\fB\-\-dest\-karg\-append\fR] [\fB\-\-dest\-karg\-delete\fR] [\fB\-\-network\-keyfile\fR] [\fB\-\-network\-nmstate\fR] [\fB\-\-ignition\-ca\fR] [\fB\-\-pre\-install\fR] [\fB\-\-post\-install\fR] [\fB\-\-installer\-config\fR] [\fB\-\-live\-ignition\fR] [\fB\-\-live\-karg\-append\fR] [\fB\-\-live\-karg\-delete\fR] [\fB\-\-live\-karg\-replace\fR] [\fB\-f\fR|\fB\-\-force\fR] [\fB\-o\fR|\fB\-\-output\fR] <\fIISO\fR> 
+\fBnestos\-installer\-iso\-customize\fR [\fB\-\-dest\-ignition\fR] [\fB\-\-dest\-device\fR] [\fB\-\-dest\-console\fR] [\fB\-\-dest\-karg\-append\fR] [\fB\-\-dest\-karg\-delete\fR] [\fB\-\-network\-keyfile\fR] [\fB\-\-network\-nmstate\fR] [\fB\-\-ignition\-ca\fR] [\fB\-\-pre\-install\fR] [\fB\-\-post\-install\fR] [\fB\-\-installer\-config\fR] [\fB\-\-live\-ignition\fR] [\fB\-\-live\-karg\-append\fR] [\fB\-\-live\-karg\-delete\fR] [\fB\-\-live\-karg\-replace\fR] [\fB\-f\fR|\fB\-\-force\fR] [\fB\-o\fR|\fB\-\-output\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] <\fIISO\fR> 
 .SH DESCRIPTION
 Customize a nestos live ISO image
 .SH OPTIONS
-.TP
-\fB\-h\fR, \fB\-\-help\fR
-Print help information
-.TP
-\fB\-V\fR, \fB\-\-version\fR
-Print version information
 .TP
 \fB\-\-dest\-ignition\fR=\fIpath\fR
 Ignition config fragment for dest sys
@@ -96,7 +90,13 @@ Overwrite existing customizations
 \fB\-o\fR, \fB\-\-output\fR=\fIpath\fR
 Write ISO to a new output file
 .TP
+\fB\-h\fR, \fB\-\-help\fR
+Print help (see a summary with \*(Aq\-h\*(Aq)
+.TP
+\fB\-V\fR, \fB\-\-version\fR
+Print version
+.TP
 <\fIISO\fR>
 ISO image
 .SH VERSION
-v0.17.0
+v0.18.0

@@ -4,19 +4,30 @@ nav_order: 8
 
 # Release notes
 
-## Upcoming coreos-installer 0.18.0 (unreleased)
+## Upcoming coreos-installer 0.19.0 (unreleased)
+
+
+## coreos-installer 0.18.0 (2023-08-24)
 
 Major changes:
 
+- iso: Support kargs modification on s390x by using `kargs.json` if present
+- Add Fedora 40 signing key; drop Fedora 37 signing key
 
 Minor changes:
 
+- install: Verify that Ignition config is valid JSON
+- install: Add long help for several options
+- download/install: Clarify help text for `--insecure`
 
 Internal changes:
 
+- verify-unique-fs-label: Run `blkid` with a clean cache to avoid stale devices
 
 Packaging changes:
 
+- Require `clap` ≥ 4.1
+- Update container to Fedora 38
 
 
 ## coreos-installer 0.17.0 (2023-03-10)
