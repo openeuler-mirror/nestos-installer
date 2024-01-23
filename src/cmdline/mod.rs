@@ -34,7 +34,9 @@ pub use self::types::*;
 // Args are listed in --help in the order declared in these structs/enums.
 // Please keep the entire help text to 80 columns.
 
-/// Installer for Fedora CoreOS and RHEL CoreOS
+/// Installer for NestOS.
+/// 
+/// NestOS is a Variant in openEuler from Fedora CoreOS.
 #[derive(Debug, Parser)]
 #[clap(version)]
 #[clap(global_setting(AppSettings::DeriveDisplayOrder))]
@@ -42,16 +44,16 @@ pub use self::types::*;
 #[clap(disable_help_subcommand = true)]
 #[clap(help_expected = true)]
 pub enum Cmd {
-    /// Install Fedora CoreOS or RHEL CoreOS
+    /// Install NestOS
     Install(InstallConfig),
-    /// Download a CoreOS image
-    Download(DownloadConfig),
-    /// List available images in a Fedora CoreOS stream
-    ListStream(ListStreamConfig),
-    /// Commands to manage a CoreOS live ISO image
+    /// Download a NestOS image
+    //Download(DownloadConfig),
+    /// List available images in a NestOS release stream
+    //ListStream(ListStreamConfig),
+    /// Commands to manage a NestOS live ISO image
     #[clap(subcommand)]
     Iso(IsoCmd),
-    /// Commands to manage a CoreOS live PXE image
+    /// Commands to manage a NestOS live PXE image
     #[clap(subcommand)]
     Pxe(PxeCmd),
     /// Metadata packing commands used when building an OS image
@@ -76,21 +78,21 @@ pub enum IsoCmd {
     // deprecated
     #[clap(hide = true)]
     Remove(IsoRemoveConfig),
-    /// Customize a CoreOS live ISO image
+    /// Customize a NestOS live ISO image
     Customize(IsoCustomizeConfig),
-    /// Embed an Ignition config in a CoreOS live ISO image
+    /// Embed an Ignition config in a NestOS live ISO image
     #[clap(subcommand)]
     Ignition(IsoIgnitionCmd),
-    /// Embed network settings in a CoreOS live ISO image
+    /// Embed network settings in a NestOS live ISO image
     #[clap(subcommand)]
     Network(IsoNetworkCmd),
-    /// Modify kernel args in a CoreOS live ISO image
+    /// Modify kernel args in a NestOS live ISO image
     #[clap(subcommand)]
     Kargs(IsoKargsCmd),
-    /// Commands to extract files from a CoreOS live ISO image
+    /// Commands to extract files from a NestOS live ISO image
     #[clap(subcommand)]
     Extract(IsoExtractCmd),
-    /// Restore a CoreOS live ISO image to default settings
+    /// Restore a NestOS live ISO image to default settings
     Reset(IsoResetConfig),
 }
 
@@ -128,7 +130,7 @@ pub enum IsoKargsCmd {
 pub enum IsoExtractCmd {
     /// Extract PXE files from an ISO image
     Pxe(IsoExtractPxeConfig),
-    /// Extract a minimal ISO from a CoreOS live ISO image
+    /// Extract a minimal ISO from a NestOS live ISO image
     MinimalIso(IsoExtractMinimalIsoConfig),
 }
 
@@ -164,11 +166,11 @@ pub enum PxeNetworkCmd {
 // users shouldn't be interacting with this command normally
 #[clap(hide = true)]
 pub enum PackCmd {
-    /// Create osmet file from CoreOS block device
+    /// Create osmet file from NestOS block device
     Osmet(PackOsmetConfig),
-    /// Pack a minimal ISO into a CoreOS live ISO image
+    /// Pack a minimal ISO into a NestOS live ISO image
     MinimalIso(PackMinimalIsoConfig),
-    /// Generate man pages for coreos-installer
+    /// Generate man pages for nestos-installer
     #[cfg(feature = "docgen")]
     Man(PackManConfig),
     /// Generate example config file for install subcommand
@@ -190,7 +192,7 @@ pub enum DevCmd {
 
 #[derive(Debug, Parser)]
 pub enum DevShowCmd {
-    /// Inspect the CoreOS live ISO image
+    /// Inspect the NestOS live ISO image
     Iso(DevShowIsoConfig),
     /// Show the contents of an initrd image
     Initrd(DevShowInitrdConfig),
@@ -208,13 +210,13 @@ pub enum DevExtractCmd {
 
 #[derive(Debug, Parser)]
 pub struct DownloadConfig {
-    /// Fedora CoreOS stream
+    /// NestOS release stream
     #[clap(short, long, value_name = "name", default_value = "stable")]
     pub stream: String,
     /// Target CPU architecture
     #[clap(short, long, value_name = "name", default_value_t)]
     pub architecture: DefaultedString<Architecture>,
-    /// Fedora CoreOS platform name
+    /// NestOS platform name
     #[clap(short, long, value_name = "name", default_value = "metal")]
     pub platform: String,
     /// Image format
@@ -232,7 +234,7 @@ pub struct DownloadConfig {
     /// Skip signature verification
     #[clap(long)]
     pub insecure: bool,
-    /// Base URL for Fedora CoreOS stream metadata
+    /// Base URL for NestOS release stream metadata
     #[clap(long, value_name = "URL")]
     pub stream_base_url: Option<Url>,
     /// Fetch retries, or "infinite"
@@ -242,10 +244,10 @@ pub struct DownloadConfig {
 
 #[derive(Debug, Parser)]
 pub struct ListStreamConfig {
-    /// Fedora CoreOS stream
+    /// NestOS release stream
     #[clap(short, long, value_name = "name", default_value = "stable")]
     pub stream: String,
-    /// Base URL for Fedora CoreOS stream metadata
+    /// Base URL for NestOS release stream metadata
     #[clap(long, value_name = "URL")]
     pub stream_base_url: Option<Url>,
 }
@@ -326,7 +328,7 @@ pub struct CommonCustomizeConfig {
     pub post_install: Vec<String>,
     /// Installer config file
     ///
-    /// Automatically run coreos-installer and apply the specified installer
+    /// Automatically run nestos-installer and apply the specified installer
     /// config file.  Config files are applied in the order that they are
     /// specified.
     #[clap(long, value_name = "path")]
@@ -634,7 +636,7 @@ pub struct PxeCustomizeConfig {
     /// Output file
     #[clap(short, long, value_name = "path")]
     pub output: String,
-    /// CoreOS live initramfs image
+    /// NestOS live initramfs image
     #[clap(value_name = "path")]
     pub input: String,
 }

@@ -21,9 +21,10 @@ use cmdline::*;
 
 fn main() -> Result<()> {
     match Cmd::parse() {
-        Cmd::Download(c) => download::download(c),
+        //Temporarily closed Download and ListStream before NestOS Stream is ready.
+        //Cmd::Download(c) => download::download(c),
         Cmd::Install(c) => install::install(c),
-        Cmd::ListStream(c) => source::list_stream(c),
+        //Cmd::ListStream(c) => source::list_stream(c),
         Cmd::Iso(c) => match c {
             IsoCmd::Customize(c) => live::iso_customize(c),
             IsoCmd::Embed(c) => live::iso_embed(c),

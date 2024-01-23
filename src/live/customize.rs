@@ -30,7 +30,7 @@ use super::util::filename;
 
 pub(super) const INITRD_FEATURES_PATH: &str = "etc/nestos/features.json";
 
-const COREOS_ISO_FEATURES_PATH: &str = "COREOS/FEATURES.JSO";
+const COREOS_ISO_FEATURES_PATH: &str = "NESTOS/FEATURES.JSO";
 
 /// CoreOS feature flags in /etc/coreos/features.json in the live initramfs
 /// and /coreos/features.json in the live ISO.  Written by

@@ -74,10 +74,10 @@ pub struct InstallConfig {
     pub config_file: Vec<String>,
 
     // ways to specify the image source
-    /// Fedora CoreOS stream
+    /// NestOS release stream
     ///
-    /// The name of the Fedora CoreOS stream to install, such as "stable",
-    /// "testing", or "next".
+    /// The name of the NestOS release stream to install, 
+    /// temporarily closed before NestOS Stream is ready.
     #[clap(short, long, value_name = "name")]
     #[clap(conflicts_with = "image-file", conflicts_with = "image-url")]
     pub stream: Option<String>,
@@ -134,7 +134,7 @@ pub struct InstallConfig {
     /// Additional kernel args for the first boot
     // This used to be for configuring networking from the cmdline, but it has
     // been obsoleted by the nicer `--copy-network` approach. We still need it
-    // for now though. It's used at least by `coreos-installer.service`.
+    // for now though. It's used at least by `nestos-installer.service`.
     #[serde(skip)]
     #[clap(long, hide = true, value_name = "args")]
     pub firstboot_args: Option<String>,
@@ -200,16 +200,15 @@ pub struct InstallConfig {
     #[serde(skip_serializing_if = "is_default")]
     #[clap(long, help_heading = ADVANCED)]
     pub insecure_ignition: bool,
-    /// Base URL for CoreOS stream metadata
+    /// Base URL for NestOS release stream metadata
     ///
-    /// Override the base URL for fetching CoreOS stream metadata.
-    /// The default is "https://builds.coreos.fedoraproject.org/streams/".
+    /// Temporarily closed before NestOS Stream is ready.
     #[serde_as(as = "Option<DisplayFromStr>")]
     #[clap(long, value_name = "URL", help_heading = ADVANCED)]
     pub stream_base_url: Option<Url>,
     /// Don't clear partition table on error
     ///
-    /// If installation fails, coreos-installer normally clears the
+    /// If installation fails, nestos-installer normally clears the
     /// destination's partition table to prevent booting from invalid
     /// boot media.  Skip clearing the partition table as a debugging aid.
     #[serde(skip_serializing_if = "is_default")]

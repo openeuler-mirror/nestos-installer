@@ -39,7 +39,7 @@ use self::util::*;
 const INITRD_LIVE_STAMP_PATH: &str = "etc/nestos-live-initramfs";
 const COREOS_ISO_PXEBOOT_DIR: &str = "IMAGES/PXEBOOT";
 const COREOS_ISO_ROOTFS_IMG: &str = "IMAGES/PXEBOOT/ROOTFS.IMG";
-const COREOS_ISO_MINISO_FILE: &str = "COREOS/MINISO.DAT";
+const COREOS_ISO_MINISO_FILE: &str = "NESTOS/MINISO.DAT";
 
 lazy_static! {
     static ref ALL_GLOB: GlobMatcher = GlobMatcher::new(&["*"]).unwrap();

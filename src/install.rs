@@ -122,6 +122,9 @@ pub fn install(config: InstallConfig) -> Result<()> {
             None => bail!("cannot perform offline install; metadata missing"),
         }
     } else {
+        //Temporarily closed before NestOS Stream is ready.
+        bail!("The --stream is not currently supported until NestOS release stream is ready.");
+
         // For now, using --stream automatically will cause a download. In the future, we could
         // opportunistically use osmet if the version and stream match an osmet file/the live ISO.
 
