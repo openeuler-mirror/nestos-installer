@@ -42,7 +42,7 @@ const COREOS_KARG_EMBED_AREA_HEADER_MAGIC: &[u8] = b"coreKarg";
 const COREOS_KARG_EMBED_AREA_HEADER_SIZE: u64 = 72;
 const COREOS_KARG_EMBED_AREA_HEADER_MAX_OFFSETS: usize = 6;
 const COREOS_KARG_EMBED_AREA_MAX_SIZE: usize = 2048;
-const COREOS_KARG_EMBED_INFO_PATH: &str = "COREOS/KARGS.JSO";
+const COREOS_KARG_EMBED_INFO_PATH: &str = "NESTOS/KARGS.JSO";
 
 pub(super) struct IsoConfig {
     initrd: InitrdEmbedArea,

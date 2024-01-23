@@ -52,7 +52,7 @@ pub fn rootmap(config: RootmapConfig) -> Result<()> {
     // systemd-fstab-generator, and it defaults to read-only otherwise
     kargs.push("rw".into());
 
-    let rootflags = runcmd_output!("coreos-rootflags", &config.root_mount)?;
+    let rootflags = runcmd_output!("nestos-rootflags", &config.root_mount)?;
     let rootflags = rootflags.trim();
     if !rootflags.is_empty() {
         kargs.push(format!("rootflags={}", rootflags));

@@ -33,7 +33,7 @@ use crate::util::set_die_on_sigpipe;
 const HTTP_COMPLETION_TIMEOUT: Duration = Duration::from_secs(4 * 60 * 60);
 
 /// Default base URL to Fedora CoreOS streams metadata.
-const DEFAULT_STREAM_BASE_URL: &str = "https://builds.coreos.fedoraproject.org/streams/";
+const DEFAULT_STREAM_BASE_URL: &str = "https://nestos.org.cn/NestOS-release/streams/";
 
 /// Directory in which we look for osmet files.
 const OSMET_FILES_DIR: &str = "/run/nestos-installer/osmet";
