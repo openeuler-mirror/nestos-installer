@@ -14,7 +14,6 @@
 
 //! ISO embed area support
 
-// change coreos to nestos
 use anyhow::{bail, Context, Result};
 use bytes::Buf;
 use lazy_static::lazy_static;
@@ -33,10 +32,11 @@ lazy_static! {
     pub(super) static ref INITRD_IGNITION_GLOB: GlobMatcher =
         GlobMatcher::new(&[INITRD_IGNITION_PATH]).unwrap();
     pub(super) static ref INITRD_NETWORK_GLOB: GlobMatcher =
-        GlobMatcher::new(&[&format!("{}/*", INITRD_NETWORK_DIR)]).unwrap();
+        GlobMatcher::new(&[&format!("{INITRD_NETWORK_DIR}/*")]).unwrap();
 }
 
-const COREOS_INITRD_EMBED_PATH: &str = "IMAGES/IGNITION.IMG";
+const COREOS_IGNINFO_PATH: &str = "NESTOS/IGNINFO.JSO";
+const COREOS_INITRD_DEFAULT_EMBED_PATH: &str = "IMAGES/IGNITION.IMG";
 const COREOS_INITRD_HEADER_SIZE: u64 = 24;
 const COREOS_KARG_EMBED_AREA_HEADER_MAGIC: &[u8] = b"coreKarg";
 const COREOS_KARG_EMBED_AREA_HEADER_SIZE: u64 = 72;
@@ -168,9 +168,9 @@ impl Region {
     pub fn read(file: &mut File, offset: u64, length: usize) -> Result<Self> {
         let mut contents = vec![0; length];
         file.seek(SeekFrom::Start(offset))
-            .with_context(|| format!("seeking to offset {}", offset))?;
+            .with_context(|| format!("seeking to offset {offset}"))?;
         file.read_exact(&mut contents)
-            .with_context(|| format!("reading {} bytes at {}", length, offset))?;
+            .with_context(|| format!("reading {length} bytes at {offset}"))?;
         Ok(Self {
             offset,
             length,
@@ -208,7 +208,7 @@ trait Stream {
 
 impl Stream for [&Region] {
     fn stream(&self, input: &mut File, writer: &mut (impl Write + ?Sized)) -> Result<()> {
-        input.seek(SeekFrom::Start(0)).context("seeking to start")?;
+        input.rewind().context("seeking to start")?;
 
         let mut regions: Vec<&&Region> = self.iter().filter(|r| r.modified).collect();
         regions.sort_unstable();
@@ -317,7 +317,7 @@ impl KargEmbedInfo {
         let mut contents = vec![b' '; iso_file.length as usize];
         contents[..new_json.len()].copy_from_slice(new_json.as_bytes());
         w.write_all(&contents)
-            .with_context(|| format!("failed to update {}", COREOS_KARG_EMBED_INFO_PATH))?;
+            .with_context(|| format!("failed to update {COREOS_KARG_EMBED_INFO_PATH}"))?;
         w.flush().context("flushing ISO")?;
         Ok(())
     }
@@ -504,14 +504,41 @@ struct InitrdEmbedArea {
     initrd: Initrd,
 }
 
+#[derive(Deserialize)]
+struct IgnInfo {
+    file: String,
+    offset: Option<u64>,
+    length: Option<usize>,
+}
+
 impl InitrdEmbedArea {
     pub fn for_iso(iso: &mut IsoFs) -> Result<Self> {
+        let igninfo: IgnInfo = match iso.get_path(COREOS_IGNINFO_PATH) {
+            Ok(record) => {
+                let f = record.try_into_file()?;
+                serde_json::from_reader(iso.read_file(&f).context("reading igninfo")?)
+                    .context("decoding igninfo")?
+            }
+            // old ISO without info JSON; assume ignition.img
+            Err(e) if e.is::<iso9660::NotFound>() => IgnInfo {
+                file: COREOS_INITRD_DEFAULT_EMBED_PATH.to_string(),
+                offset: None,
+                length: None,
+            },
+            Err(e) => return Err(e),
+        };
+
         let f = iso
-            .get_path(COREOS_INITRD_EMBED_PATH)
+            .get_path(&igninfo.file.to_uppercase())
             .context("finding initrd embed area")?
             .try_into_file()?;
+        let file_offset = igninfo.offset.unwrap_or(0);
+        let iso_offset = f.address.as_offset() + file_offset;
+        let length = igninfo
+            .length
+            .unwrap_or(f.length as usize - file_offset as usize);
         // read (checks offset/length as a side effect)
-        let mut region = Region::read(iso.as_file()?, f.address.as_offset(), f.length as usize)
+        let mut region = Region::read(iso.as_file()?, iso_offset, length)
             .context("reading initrd embed area")?;
         let initrd = if region.contents.iter().any(|v| *v != 0) {
             Initrd::from_reader(&*region.contents).context("decoding initrd embed area")?
@@ -563,7 +590,7 @@ impl InitrdEmbedArea {
 // only for miniso generation
 pub(super) fn set_default_kargs(iso: &mut IsoFs, default: String) -> Result<()> {
     let mut kargs_info = KargEmbedInfo::for_iso(iso)?.context(
-        // should be impossible; we only support new-style CoreOS ISOs with kargs.json
+        // should be impossible; we only support new-style NestOS ISOs with kargs.json
         "minimal ISO does not have kargs.json; please report this as a bug",
     )?;
 

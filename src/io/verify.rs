@@ -186,7 +186,7 @@ impl<R: Read> GpgReader<R> {
             .context("running gpg --check-trustdb")?;
         if !trustdb.status.success() {
             // copy out its stderr
-            eprint!("{}", String::from_utf8_lossy(&*trustdb.stderr));
+            eprint!("{}", String::from_utf8_lossy(&trustdb.stderr));
             bail!("gpg --check-trustdb failed");
         }
 
@@ -326,7 +326,7 @@ mod tests {
     /// Read data with bad signature
     #[test]
     fn test_bad_signature() {
-        let mut data = include_bytes!("../../fixtures/verify/test-key.priv.asc").clone();
+        let mut data = *include_bytes!("../../fixtures/verify/test-key.priv.asc");
         let sig = include_bytes!("../../fixtures/verify/test-key.priv.asc.sig");
         data[data.len() - 1] = b'!';
 

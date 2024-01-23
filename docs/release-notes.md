@@ -4,15 +4,54 @@ nav_order: 8
 
 # Release notes
 
-## Upcoming coreos-installer 0.17.0 (unreleased)
+## Upcoming coreos-installer 0.18.0 (unreleased)
 
 Major changes:
 
+
 Minor changes:
+
 
 Internal changes:
 
+
 Packaging changes:
+
+
+
+## coreos-installer 0.17.0 (2023-03-10)
+
+Major changes:
+
+- Add Fedora 39 signing key; drop Fedora 36 signing key
+- iso: Support Ignition embedding on s390x by using `igninfo.json` if present
+
+Minor changes:
+
+- customize: Support Ignition config spec 3.4.0
+- customize: Avoid disabling ISO autologin when only changing live kargs
+- customize: Warn when customized PXE image requires Ignition kargs
+- install: Avoid network fetch timeout when low-level formatting ECKD DASD
+
+Internal changes:
+
+- verify-unique-fs-label: Use `-p` when calling `blkid` to avoid stale cache
+
+Packaging changes:
+
+- Require Rust ≥ 1.66.0
+- Require `base64` ≥ 0.21.0
+- Require `ignition-config` ≥ 0.3.0
+- Require `mbrman` ≥ 0.5.0 (on s390x)
+- Require `nmstate` ≥ 2.2.3
+- Update container to Fedora 37
+
+
+## coreos-installer 0.16.1 (2022-09-19)
+
+Packaging changes:
+
+- Fix directory layout of vendor archive
 
 
 ## coreos-installer 0.16.0 (2022-09-14)
@@ -93,7 +132,7 @@ Minor changes:
 Internal changes:
 
 - bind-boot: Fix EFI vendor directory detection
-- verify-unique-fs-label: use `blkid` instead of `lsblk` to make filesystem label querying more reliable
+- verify-unique-fs-label: Use `blkid` instead of `lsblk` to make filesystem label querying more reliable
 - Delete legacy aliases for `osmet` and `minimal-iso` pack commands used by coreos-assembler
 
 Packaging changes:

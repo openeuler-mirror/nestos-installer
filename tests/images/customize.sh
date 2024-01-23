@@ -6,7 +6,7 @@ PS4='${LINENO}: '
 
 timeout=10m
 
-rootdir="$(realpath $(dirname $0)/../..)"
+rootdir="$(realpath "$(dirname "$0")"/../..)"
 fixtures="${rootdir}/fixtures/customize"
 
 tmpd=$(mktemp -d)
@@ -14,10 +14,10 @@ trap 'rm -rf "${tmpd}"' EXIT
 cd "${tmpd}"
 
 artifactdir=$1; shift
-ln -s ${artifactdir}/*-live-kernel-x86_64 src-kernel
-ln -s ${artifactdir}/*-live-initramfs.x86_64.img src-initrd
-ln -s ${artifactdir}/*-live-rootfs.x86_64.img src-rootfs
-ln -s ${artifactdir}/*-live.x86_64.iso src-iso
+ln -s "${artifactdir}"/*-live-kernel-x86_64 src-kernel
+ln -s "${artifactdir}"/*-live-initramfs.x86_64.img src-initrd
+ln -s "${artifactdir}"/*-live-rootfs.x86_64.img src-rootfs
+ln -s "${artifactdir}"/*-live.x86_64.iso src-iso
 
 digest() {
     # Ignore filename
@@ -43,7 +43,7 @@ kargs_common=(
 kargs_live=(
     # make sure we get log output
     # the installed system sets this with --dest-console instead
-    console=ttyS0,115200
+    "console=ttyS0,115200"
 )
 
 # options that don't initiate an install, even if they pertain to one
@@ -90,12 +90,12 @@ opts_install=(
     # Condition of @applied-dest-ign@
     --dest-karg-append ignition.platform.id=qemu
 )
-for arg in ${kargs_common[@]}; do
+for arg in "${kargs_common[@]}"; do
     opts_install+=(--dest-karg-append "${arg}")
 done
 
 opts_iso=()
-for arg in ${kargs_common[@]} ${kargs_live[@]}; do
+for arg in "${kargs_common[@]}" "${kargs_live[@]}"; do
     opts_iso+=(--live-karg-append "${arg}")
 done
 
@@ -243,7 +243,7 @@ orig_size=$(stat -Lc %s src-initrd)
 # head part
 cmp -n "${orig_size}" src-initrd initrd
 # tail part
-[ $(dd if=initrd skip="$((${orig_size} + 1))" bs=1 count=4 status=none) = 7zXZ ]
+[ "$(dd if=initrd skip="$((orig_size + 1))" bs=1 count=4 status=none)" = "7zXZ" ]
 rm initrd
 
 # Check equivalence of PXE outputs
@@ -312,6 +312,9 @@ iso_customize \
     --live-karg-replace ignition.platform.id=metal=bar
 nestos-installer iso kargs show iso | grepq ignition.platform.id=bar
 nestos-installer iso kargs show iso | grepq foo
+# Embedding only live kargs shouldn't also embed an Ignition config
+(nestos-installer iso ignition show iso 2>&1 ||:) |
+    grepq "No embedded Ignition config"
 iso_customize \
     --live-karg-delete ignition.platform.id=metal
 ! nestos-installer iso kargs show iso | grepq ignition.platform.id
