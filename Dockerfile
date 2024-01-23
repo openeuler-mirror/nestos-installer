@@ -1,5 +1,5 @@
 #update for nestos later
-FROM registry.fedoraproject.org/fedora:36 AS builder
+FROM registry.fedoraproject.org/fedora:37 AS builder
 RUN dnf install -y cargo git-core libzstd-devel openssl-devel xz-devel
 WORKDIR /build
 COPY Cargo.* ./
@@ -14,7 +14,7 @@ RUN if [ $(uname -p) != x86_64 ]; then sed -i "s/^debug = false$/debug = false\n
 RUN mkdir -p .cargo && echo -e '[net]\ngit-fetch-with-cli = true' > .cargo/config.toml
 RUN cargo build --release
 
-FROM registry.fedoraproject.org/fedora:36
+FROM registry.fedoraproject.org/fedora:37
 RUN dnf install -y /usr/bin/gpg /usr/sbin/kpartx /usr/bin/lsblk \
     /usr/sbin/udevadm && \
     dnf clean all

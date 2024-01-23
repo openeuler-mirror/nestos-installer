@@ -2,8 +2,23 @@
 
 set -euo pipefail
 
-export PATH="$(realpath $(dirname $0)/../target/${PROFILE:-debug}):$PATH"
-fixturesdir="$(realpath $(dirname $0)/../fixtures)"
+export PATH
+bindir="$(realpath -m "$(dirname "$0")/../target/${PROFILE:-debug}")"
+if [[ -x "$bindir/coreos-installer" ]]; then
+    PATH="$bindir:$PATH"
+elif command -v coreos-installer >/dev/null; then
+    echo "$bindir/coreos-installer not found"
+    if [[ -n "${COREOS_INSTALLER_TEST_INSTALLED_BINARY:-}" ]]; then
+        echo "COREOS_INSTALLER_TEST_INSTALLED_BINARY set; testing $(command -v coreos-installer)"
+    else
+        echo "Found $(command -v coreos-installer) but COREOS_INSTALLER_TEST_INSTALLED_BINARY not set; aborting"
+        exit 1
+    fi
+else
+    echo "coreos-installer not found.  Do you need to set PROFILE?"
+    exit 1
+fi
+fixturesdir="$(realpath "$(dirname "$0")"/../fixtures)"
 
 fixtures=(
     embed-areas-2020-09.iso.xz
@@ -12,6 +27,8 @@ fixtures=(
     embed-areas-2021-12.iso.xz
     embed-areas-2022-02.iso.xz
     embed-areas-2022-09.iso.xz
+    embed-areas-2023-03.x86_64.iso.xz
+    embed-areas-2023-03.s390x.iso.xz
 )
 
 msg() {
@@ -27,7 +44,7 @@ call() {
     msg "$*"
     local cmd="$1"
     shift
-    "$(dirname $0)/images/${cmd}" "$@"
+    "$(dirname "$0")/images/${cmd}" "$@"
 }
 
 call_for_fixtures() {
@@ -50,10 +67,12 @@ call_for_fixtures() {
 if [ -n "${1:-}" ]; then
     # test with artifacts in cosa build dir
     basedir="$1"
-    if ! [ -e "${basedir}"/*.iso ] ;then
-        echo "Couldn't find ISO image in ${basedir}"
-        exit 1
-    fi
+    for f in "${basedir}"/*.iso; do
+        if [[ ! -e "${f}" ]]; then
+            echo "Couldn't find ISO image in ${basedir}"
+            exit 1
+        fi
+    done
     call iso-ignition.sh "${basedir}"/*.iso
     call iso-network.sh "${basedir}"/*.iso
     call iso-kargs.sh "${basedir}"/*.iso
