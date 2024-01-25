@@ -4,7 +4,50 @@ nav_order: 8
 
 # Release notes
 
-## Upcoming coreos-installer 0.19.0 (unreleased)
+## Upcoming coreos-installer 0.21.0 (unreleased)
+
+Major changes:
+
+
+Minor changes:
+
+
+Internal changes:
+
+
+Packaging changes:
+
+
+## coreos-installer 0.20.0 (2023-12-19)
+
+Major changes:
+
+- Support alternative grub2/30_console.cfg location for grub console configuration
+
+Minor changes:
+
+
+Internal changes:
+
+
+Packaging changes:
+
+- Fix Packit changelog entry generation
+
+
+## coreos-installer 0.19.0 (2023-12-11)
+
+Major changes:
+
+- install: Add z/VM Secure IPL support
+
+Internal changes:
+
+- rootmap/bind-boot: Support root devices using composefs
+
+Packaging changes:
+
+- Add Packit support for Fedora packaging
 
 
 ## coreos-installer 0.18.0 (2023-08-24)

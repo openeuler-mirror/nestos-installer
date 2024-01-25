@@ -5,3 +5,4 @@ AllowIsolate=yes
 Requires=nestos-installer.target
 Requires=nestos-installer-reboot.service
 Requires=nestos-installer-noreboot.service
+Requires=nestos-installer-secure-ipl-reboot.service
