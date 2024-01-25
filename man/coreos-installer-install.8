@@ -1,19 +1,13 @@
 .ie \n(.g .ds Aq \(aq
 .el .ds Aq '
-.TH nestos-installer 8  "nestos-installer 0.17.0" 
+.TH nestos-installer 8  "nestos-installer 0.18.0" 
 .SH NAME
-nestos\-installer\-install \- Install nestos
+nestos\-installer\-install \- Install NestOS or RHEL nestos
 .SH SYNOPSIS
-\fBnestos\-installer\-install\fR [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fB\-c\fR|\fB\-\-config\-file\fR] [\fB\-s\fR|\fB\-\-stream\fR] [\fB\-u\fR|\fB\-\-image\-url\fR] [\fB\-f\fR|\fB\-\-image\-file\fR] [\fB\-i\fR|\fB\-\-ignition\-file\fR] [\fB\-I\fR|\fB\-\-ignition\-url\fR] [\fB\-\-ignition\-hash\fR] [\fB\-a\fR|\fB\-\-architecture\fR] [\fB\-p\fR|\fB\-\-platform\fR] [\fB\-\-console\fR] [\fB\-\-append\-karg\fR] [\fB\-\-delete\-karg\fR] [\fB\-n\fR|\fB\-\-copy\-network\fR] [\fB\-\-network\-dir\fR] [\fB\-\-save\-partlabel\fR] [\fB\-\-save\-partindex\fR] [\fB\-\-offline\fR] [\fB\-\-insecure\fR] [\fB\-\-insecure\-ignition\fR] [\fB\-\-stream\-base\-url\fR] [\fB\-\-preserve\-on\-error\fR] [\fB\-\-fetch\-retries\fR] [\fIDEST_DEVICE\fR] 
+\fBnestos\-installer\-install\fR [\fB\-c\fR|\fB\-\-config\-file\fR] [\fB\-s\fR|\fB\-\-stream\fR] [\fB\-u\fR|\fB\-\-image\-url\fR] [\fB\-f\fR|\fB\-\-image\-file\fR] [\fB\-i\fR|\fB\-\-ignition\-file\fR] [\fB\-I\fR|\fB\-\-ignition\-url\fR] [\fB\-\-ignition\-hash\fR] [\fB\-a\fR|\fB\-\-architecture\fR] [\fB\-p\fR|\fB\-\-platform\fR] [\fB\-\-console\fR] [\fB\-\-append\-karg\fR] [\fB\-\-delete\-karg\fR] [\fB\-n\fR|\fB\-\-copy\-network\fR] [\fB\-\-network\-dir\fR] [\fB\-\-save\-partlabel\fR] [\fB\-\-save\-partindex\fR] [\fB\-\-offline\fR] [\fB\-\-insecure\fR] [\fB\-\-insecure\-ignition\fR] [\fB\-\-stream\-base\-url\fR] [\fB\-\-preserve\-on\-error\fR] [\fB\-\-fetch\-retries\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fIDEST_DEVICE\fR] 
 .SH DESCRIPTION
-Install nestos
+Install NestOS or RHEL nestos
 .SH OPTIONS
-.TP
-\fB\-h\fR, \fB\-\-help\fR
-Print help information
-.TP
-\fB\-V\fR, \fB\-\-version\fR
-Print version information
 .TP
 \fB\-c\fR, \fB\-\-config\-file\fR=\fIpath\fR
 YAML config file with install options
@@ -23,18 +17,24 @@ Load additional config options from the specified YAML config file. Later config
 Config file keys are long option names without the leading "\-\-". Values are strings for non\-repeatable options, arrays of strings for repeatable options, and "true" for flags.  The destination device can be specified with the "dest\-device" key.
 .TP
 \fB\-s\fR, \fB\-\-stream\fR=\fIname\fR
-nestos stream
+NestOS stream
 
-The name of the nestos  stream to install, such as "stable", "testing", or "next".
+The name of the NestOS stream to install, such as "stable", "testing", or "next".
 .TP
 \fB\-u\fR, \fB\-\-image\-url\fR=\fIURL\fR
 Manually specify the image URL
+
+nestos\-installer appends ".sig" to find the GPG signature for the image, which must exist and be valid.  A missing signature can be ignored with \-\-insecure.
 .TP
 \fB\-f\fR, \fB\-\-image\-file\fR=\fIpath\fR
 Manually specify a local image file
+
+nestos\-installer appends ".sig" to find the GPG signature for the image, which must exist and be valid.  A missing signature can be ignored with \-\-insecure.
 .TP
 \fB\-i\fR, \fB\-\-ignition\-file\fR=\fIpath\fR
 Embed an Ignition config from a file
+
+Embed the specified Ignition config in the installed system.
 .TP
 \fB\-I\fR, \fB\-\-ignition\-url\fR=\fIURL\fR
 Embed an Ignition config from a URL
@@ -76,7 +76,7 @@ Copy network config from install environment
 
 Copy NetworkManager keyfiles from the install environment to the installed system.
 .TP
-\fB\-\-network\-dir\fR=\fIpath\fR [default: /etc/NetworkManager/system\-connections/]
+\fB\-\-network\-dir\fR=\fIpath\fR
 Override NetworkManager keyfile dir for \-n
 
 Specify the path to NetworkManager keyfiles to be copied with \-\-copy\-network.
@@ -85,15 +85,25 @@ Specify the path to NetworkManager keyfiles to be copied with \-\-copy\-network.
 .TP
 \fB\-\-save\-partlabel\fR=\fIlx\fR
 Save partitions with this label glob
+
+Preserve any existing partitions on the destination device whose partition label (not filesystem label) matches the specified glob pattern.  Multiple patterns can be specified in multiple options, or in a single option separated by commas.
+
+Saved partitions will be renumbered if necessary.  If partitions overlap with the install image, or installation fails for any other reason, the specified partitions will still be preserved.
 .TP
 \fB\-\-save\-partindex\fR=\fIid\fR
 Save partitions with this number or range
+
+Preserve any existing partitions on the destination device whose partition number matches the specified value or range.  Ranges can be bounded on both ends ("5\-7", inclusive) or one end ("5\-" or "\-7"). Multiple numbers or ranges can be specified in multiple options, or in a single option separated by commas.
+
+Saved partitions will be renumbered if necessary.  If partitions overlap with the install image, or installation fails for any other reason, the specified partitions will still be preserved.
 .TP
 \fB\-\-offline\fR
 Force offline installation
 .TP
 \fB\-\-insecure\fR
-Skip signature verification
+Allow unsigned image
+
+Allow the signature to be absent.  Does not allow an existing signature to be invalid.
 .TP
 \fB\-\-insecure\-ignition\fR
 Allow Ignition URL without HTTPS or hash
@@ -101,7 +111,7 @@ Allow Ignition URL without HTTPS or hash
 \fB\-\-stream\-base\-url\fR=\fIURL\fR
 Base URL for nestos stream metadata
 
-Override the base URL for fetching nestos stream metadata. The default is "https://builds.coreos.fedoraproject.org/streams/".
+Override the base URL for fetching nestos stream metadata. The default is "https://builds.nestos.fedoraproject.org/streams/".
 .TP
 \fB\-\-preserve\-on\-error\fR
 Don\*(Aqt clear partition table on error
@@ -113,9 +123,15 @@ Fetch retries, or "infinite"
 
 Number of times to retry network fetches, or the string "infinite" to retry indefinitely.
 .TP
+\fB\-h\fR, \fB\-\-help\fR
+Print help (see a summary with \*(Aq\-h\*(Aq)
+.TP
+\fB\-V\fR, \fB\-\-version\fR
+Print version
+.TP
 [\fIDEST_DEVICE\fR]
 Destination device
 
 Path to the device node for the destination disk.  The beginning of the device will be overwritten without further confirmation.
 .SH VERSION
-v0.17.0
+v0.18.0

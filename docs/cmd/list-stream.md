@@ -14,5 +14,5 @@ USAGE:
 OPTIONS:
     -s, --stream <name>            NestOS stream [default: stable]
         --stream-base-url <URL>    Base URL for NestOS stream metadata
-    -h, --help                     Print help information
+    -h, --help                     Print help
 ```

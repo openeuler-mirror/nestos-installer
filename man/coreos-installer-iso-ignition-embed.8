@@ -1,19 +1,13 @@
 .ie \n(.g .ds Aq \(aq
 .el .ds Aq '
-.TH nestos-installer 8  "nestos-installer 0.17.0" 
+.TH nestos-installer 8  "nestos-installer 0.18.0" 
 .SH NAME
 nestos\-installer\-iso\-ignition\-embed \- Embed an Ignition config in an ISO image
 .SH SYNOPSIS
-\fBnestos\-installer\-iso\-ignition\-embed\fR [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fB\-f\fR|\fB\-\-force\fR] [\fB\-i\fR|\fB\-\-ignition\-file\fR] [\fB\-o\fR|\fB\-\-output\fR] <\fIISO\fR> 
+\fBnestos\-installer\-iso\-ignition\-embed\fR [\fB\-f\fR|\fB\-\-force\fR] [\fB\-i\fR|\fB\-\-ignition\-file\fR] [\fB\-o\fR|\fB\-\-output\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] <\fIISO\fR> 
 .SH DESCRIPTION
 Embed an Ignition config in an ISO image
 .SH OPTIONS
-.TP
-\fB\-h\fR, \fB\-\-help\fR
-Print help information
-.TP
-\fB\-V\fR, \fB\-\-version\fR
-Print version information
 .TP
 \fB\-f\fR, \fB\-\-force\fR
 Overwrite an existing Ignition config
@@ -24,7 +18,13 @@ Ignition config to embed [default: stdin]
 \fB\-o\fR, \fB\-\-output\fR=\fIpath\fR
 Write ISO to a new output file
 .TP
+\fB\-h\fR, \fB\-\-help\fR
+Print help
+.TP
+\fB\-V\fR, \fB\-\-version\fR
+Print version
+.TP
 <\fIISO\fR>
 ISO image
 .SH VERSION
-v0.17.0
+v0.18.0
