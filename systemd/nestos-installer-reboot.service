@@ -5,6 +5,7 @@ After=nestos-installer.target
 OnFailure=emergency.target
 OnFailureJobMode=replace-irreversibly
 ConditionPathExists=/run/nestos-installer-reboot
+ConditionKernelCommandLine=!nestos.inst.secure_ipl
 
 [Service]
 Type=simple
